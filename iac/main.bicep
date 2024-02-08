@@ -51,6 +51,15 @@ module virtualNetwork 'modules/virtualNetwork.bicep' = {
   }
 }
 
+module virtualNetworkGateway 'modules/virtualNetworkGateway.bicep' = {
+  name: '${deployment().name}--virtualNetworkGateway'
+  scope: resourceGroup
+  params:{
+    name: resourceName
+    location: resourceGroup.location
+  }
+}
+
 module networkSecurityGroup 'modules/networkSecurityGroup.bicep' = {
   name: '${deployment().name}--networkSecurityGroup'
   scope: resourceGroup

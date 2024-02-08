@@ -31,6 +31,13 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-11-01' = {
           ]
         }
       }
+      // Virtual Network Gateway can only be created in subnet with name 'GatewaySubnet'
+      {
+        name: 'GatewaySubnet'
+        properties: {
+          addressPrefix: '10.0.4.0/24'
+        }
+      }
     ]
     enableDdosProtection: false
   }

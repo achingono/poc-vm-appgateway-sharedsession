@@ -22,5 +22,24 @@ resource publicIPAddress 'Microsoft.Network/publicIPAddresses@2022-11-01' = {
   }
 }
 
+resource vgnIPAddress 'Microsoft.Network/publicIPAddresses@2022-11-01' = {
+  name: 'ip-vgn-${name}'
+  location: location
+  sku: {
+    name: skuName
+    tier: skuTier
+  }
+  properties: {
+    publicIPAddressVersion: 'IPv4'
+    publicIPAllocationMethod: 'Static'
+    ddosSettings: {
+      protectionMode: 'VirtualNetworkInherited'
+    }
+    dnsSettings: {
+      domainNameLabel: 'vpn-${name}'
+    }
+  }
+}
+
 output ipAddress string = publicIPAddress.properties.ipAddress
 output fqdn string = publicIPAddress.properties.dnsSettings.fqdn
