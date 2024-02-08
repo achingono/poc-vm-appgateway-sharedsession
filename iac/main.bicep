@@ -133,5 +133,6 @@ module sqlServer 'modules/sqlServer.bicep' = {
 
 output resourceGroupName string = resourceGroup.name
 output publicIPAddress string = publicIPAddress.outputs.ipAddress
+output fqdn string = publicIPAddress.outputs.fqdn
 output databaseServerName string = sqlServer.outputs.serverName
 output databaseName string = sqlServer.outputs.databaseName
