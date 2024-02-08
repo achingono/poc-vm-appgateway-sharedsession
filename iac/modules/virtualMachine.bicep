@@ -81,7 +81,7 @@ resource monitorAgent 'Microsoft.Compute/virtualMachines/extensions@2022-03-01' 
   properties: {
     publisher: 'Microsoft.Azure.Monitor'
     type: 'AzureMonitorWindowsAgent'
-    typeHandlerVersion: '1.23.0'
+    typeHandlerVersion: '1.0'
     autoUpgradeMinorVersion: true
     enableAutomaticUpgrade: true
   }
