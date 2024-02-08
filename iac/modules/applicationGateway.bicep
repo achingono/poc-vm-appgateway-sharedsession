@@ -3,6 +3,8 @@ param location string
 param sku string = 'Standard_v2'
 param instances array
 
+var keyVaultSecretsUserRole = resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+
 resource publicIPAddress 'Microsoft.Network/publicIPAddresses@2022-11-01' existing = {
   name: 'ip-${name}'
 }
@@ -16,14 +18,38 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-11-01' existing 
   parent: virtualNetwork
 }
 
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+  name: 'kv-${name}'
+}
+
+module keyVaultCertificate 'br/public:deployment-scripts/create-kv-certificate:1.1.1' = {
+  name: 'CreateFeKvCert'
+  params: {
+    akvName: keyVault.name
+    certificateName: name
+    certificateCommonName: publicIPAddress.properties.dnsSettings.fqdn
+  }
+}
+
 resource applicationGateway 'Microsoft.Network/applicationGateways@2021-05-01' = {
   name: 'gw-${name}'
   location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     sku: {
       name: sku
       tier: sku
     }
+    sslCertificates: [
+      {
+        name: name
+        properties: {
+          keyVaultSecretId: keyVaultCertificate.outputs.certificateSecretIdUnversioned
+        }
+      }
+    ]
     gatewayIPConfigurations: [
       {
         name: 'IpConfiguration'
@@ -47,9 +73,9 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2021-05-01' =
     ]
     frontendPorts: [
       {
-        name: 'port_80'
+        name: 'port_443'
         properties: {
-          port: 80
+          port: 443
         }
       }
     ]
@@ -79,10 +105,12 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2021-05-01' =
             id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', 'gw-${name}', 'FrontendIp')
           }
           frontendPort: {
-            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', 'gw-${name}', 'port_80')
+            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', 'gw-${name}', 'port_443')
           }
-          protocol: 'Http'
-          requireServerNameIndication: false
+          protocol: 'Https'
+          sslCertificate: {
+            id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', 'gw-${name}', name)
+          }
         }
       }
     ]
@@ -136,4 +164,25 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2021-05-01' =
   dependsOn: [
     publicIPAddress
   ]
+}
+
+resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
+  scope: keyVault
+  name: guid(applicationGateway.id, keyVault.id, keyVaultSecretsUserRole)
+  properties: {
+    roleDefinitionId: keyVaultSecretsUserRole
+    principalType: 'ServicePrincipal'
+    principalId: applicationGateway.identity.principalId
+  }
+}
+
+module rbacPropagationDelay 'br/public:deployment-scripts/wait:1.0.1' = {
+  name: 'DeploymentDelay'
+  dependsOn: [
+    roleAssignment
+  ]
+  params: {
+    waitSeconds: 60
+    location: location
+  }
 }

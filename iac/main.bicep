@@ -60,12 +60,22 @@ module networkSecurityGroup 'modules/networkSecurityGroup.bicep' = {
   }
 }
 
+module keyVault 'modules/keyVault.bicep' = {
+  name: '${deployment().name}--keyVault'
+  scope: resourceGroup
+  params:{
+    name: resourceName
+    location: resourceGroup.location
+  }
+}
+
 module applicationGateway 'modules/applicationGateway.bicep' = {
   name: '${deployment().name}--applicationGateway'
   scope: resourceGroup
   dependsOn: [
     publicIPAddress
     virtualNetwork
+    keyVault
   ]
   params:{
     name: resourceName
