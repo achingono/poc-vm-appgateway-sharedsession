@@ -117,3 +117,8 @@ module sqlServer 'modules/sqlServer.bicep' = {
     adminUsername: adminUsername
   }
 }
+
+output resourceGroupName string = resourceGroup.name
+output publicIPAddress string = publicIPAddress.outputs.ipAddress
+output databaseServerName string = sqlServer.outputs.serverName
+output databaseName string = sqlServer.outputs.databaseName

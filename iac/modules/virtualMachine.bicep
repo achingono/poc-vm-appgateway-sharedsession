@@ -88,4 +88,3 @@ resource monitorAgent 'Microsoft.Compute/virtualMachines/extensions@2022-03-01' 
 }]
 
 output vmNames array = [for (instance, i) in instances: virtualMachines[i].name]
-

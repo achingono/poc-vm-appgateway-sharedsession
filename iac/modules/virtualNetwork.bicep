@@ -12,11 +12,15 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-11-01' = {
     }
     subnets: [
       {
-        name: 'default'
+        name: 'gateway'
         properties: {
           addressPrefix: '10.0.2.0/24'
-          privateEndpointNetworkPolicies: 'Disabled'
-          privateLinkServiceNetworkPolicies: 'Enabled'
+        }
+      }
+      {
+        name: 'backend'
+        properties: {
+          addressPrefix: '10.0.3.0/24'
           serviceEndpoints: [
             {
               service: 'Microsoft.Sql'

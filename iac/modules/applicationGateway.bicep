@@ -12,7 +12,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-11-01' existing 
 }
 
 resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-11-01' existing = {
-  name: 'default'
+  name: 'gateway'
   parent: virtualNetwork
 }
 
@@ -86,32 +86,31 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2021-05-01' =
         }
       }
     ]
-    requestRoutingRules: [for instance in instances: {
-        name: '${instance.name}RoutingRule'
+    requestRoutingRules: [
+      {
+        name: 'RoutingRule'
         properties: {
           ruleType: 'PathBasedRouting'
           httpListener: {
             id: resourceId('Microsoft.Network/applicationGateways/httpListeners', 'gw-${name}', 'Listener')
           }
-          backendAddressPool: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', 'gw-${name}', '${instance.name}BackendPool')
-          }
           urlPathMap: {
-            id: resourceId('Microsoft.Network/applicationGateways/urlPathMaps', 'gw-${name}', '${instance.name}PathMap')
+            id: resourceId('Microsoft.Network/applicationGateways/urlPathMaps', 'gw-${name}', 'PathMap')
           }
         }
       }
     ]
-    urlPathMaps: [for instance in instances: {
-        name: '${instance.name}PathMap'
+    urlPathMaps: [
+      {
+        name: 'PathMap'
         properties: {
           defaultBackendAddressPool: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', 'gw-${name}', '${instance.name}BackendPool')
+            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', 'gw-${name}', '${instances[0].name}BackendPool')
           }
           defaultBackendHttpSettings: {
             id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', 'gw-${name}', 'HTTPSetting')
           }
-          pathRules: [{
+          pathRules: [for instance in instances: {
             name: '${instance.name}PathRule'
             properties: {
               paths: [

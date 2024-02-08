@@ -14,11 +14,11 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-11-01' existing 
 }
 
 resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-11-01' existing = {
-  name: 'default'
+  name: 'backend'
   parent: virtualNetwork
 }
 
-resource sqlserver 'Microsoft.Sql/servers@2022-11-01-preview' = {
+resource server 'Microsoft.Sql/servers@2022-11-01-preview' = {
   name: 'sql-${name}'
   location: location
   properties: {
@@ -29,7 +29,7 @@ resource sqlserver 'Microsoft.Sql/servers@2022-11-01-preview' = {
 
 resource virtualNetworkRule 'Microsoft.Sql/servers/virtualNetworkRules@2021-11-01' = {
   name: 'AllowSubnetIps'
-  parent: sqlserver
+  parent: server
   properties: {
     virtualNetworkSubnetId: subnet.id
   }
@@ -37,7 +37,7 @@ resource virtualNetworkRule 'Microsoft.Sql/servers/virtualNetworkRules@2021-11-0
 
 resource database 'Microsoft.Sql/servers/databases@2021-05-01-preview' = {
   name: 'db-${name}'
-  parent: sqlserver
+  parent: server
   location: location
   sku: {
     name: databaseSku
@@ -45,3 +45,6 @@ resource database 'Microsoft.Sql/servers/databases@2021-05-01-preview' = {
     capacity: databaseCapacity
   }
 }
+
+output serverName string = server.properties.fullyQualifiedDomainName
+output databaseName string = database.name

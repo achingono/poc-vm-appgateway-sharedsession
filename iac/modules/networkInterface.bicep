@@ -6,6 +6,11 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-11-01' existing 
   name: 'vnet-${name}'
 }
 
+resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-11-01' existing = {
+  name: 'backend'
+  parent: virtualNetwork
+}
+
 resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2022-11-01' existing = {
   name: 'nsg-${name}'
 }
@@ -24,7 +29,7 @@ resource networkInterface 'Microsoft.Network/networkInterfaces@2022-05-01' = [fo
         type: 'Microsoft.Network/networkInterfaces/ipConfigurations'
         properties: {
           subnet: {
-            id: virtualNetwork.properties.subnets[0].id
+            id: subnet.id
           }
           applicationGatewayBackendAddressPools: [
             {
