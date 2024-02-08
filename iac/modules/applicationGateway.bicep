@@ -18,7 +18,7 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-11-01' existing 
   parent: virtualNetwork
 }
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: 'kv-${name}'
 }
 
@@ -31,11 +31,19 @@ module keyVaultCertificate 'br/public:deployment-scripts/create-kv-certificate:1
   }
 }
 
+resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
+  name: 'id-${name}'
+  location: location
+}
+
 resource applicationGateway 'Microsoft.Network/applicationGateways@2021-05-01' = {
   name: 'gw-${name}'
   location: location
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${identity.id}': {}
+    }
   }
   properties: {
     sku: {
@@ -168,11 +176,11 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2021-05-01' =
 
 resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
   scope: keyVault
-  name: guid(applicationGateway.id, keyVault.id, keyVaultSecretsUserRole)
+  name: guid(identity.id, keyVault.id, keyVaultSecretsUserRole)
   properties: {
     roleDefinitionId: keyVaultSecretsUserRole
     principalType: 'ServicePrincipal'
-    principalId: applicationGateway.identity.principalId
+    principalId: identity.properties.principalId
   }
 }
 
