@@ -104,6 +104,19 @@ module virtualMachine 'modules/virtualMachine.bicep' = {
   }
 }
 
+module command 'modules/runCommand.bicep' = {
+  name: '${deployment().name}--command'
+  scope: resourceGroup
+  dependsOn: [
+    virtualMachine
+  ]
+  params: {
+    name: resourceName
+    location: location
+    instances: instances
+  }
+}
+
 module sqlServer 'modules/sqlServer.bicep' = {
   name: '${deployment().name}--sqlServer'
   scope: resourceGroup
