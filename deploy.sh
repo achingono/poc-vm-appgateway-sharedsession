@@ -18,6 +18,9 @@ elif [[ $CODE =~ [^a-zA-Z0-9] ]]; then
  exit 1;
 fi
 
+SECONDS=0
+echo "Start time: $(date)"
+
 # provision infrastructure
 az deployment sub create \
     --name $NAME \
@@ -28,3 +31,7 @@ az deployment sub create \
     --parameters uniqueSuffix=$CODE \
     --parameters adminUsername=$USERNAME \
     --parameters adminPassword=$PASSWORD
+
+duration=$SECONDS
+echo "End time: $(date)"
+echo "$(($duration / 3600)) hours, $(($duration / 60)) minutes and $(($duration % 60)) seconds elapsed."
