@@ -1,5 +1,9 @@
 $downloadPath = "C:\Install\Features"
 $logPath = "C:\Install\Logs"
+$siteName = "Default Web Site"
+$applicationPool = "DefaultAppPool"
+$sitePath = "IIS:\Sites\$siteName";
+$applicationPoolPath = "IIS:\\AppPools\\$applicationPool"
 
 # Configure WinRM for HTTPS
 Enable-PSRemoting -Force;
@@ -73,3 +77,26 @@ Invoke-WebRequest 'https://download.microsoft.com/download/0/1/D/01DC28EA-638C-4
 Unblock-File "$downloadPath\WebDeploy_amd64_en-US.msi";
 # https://serverfault.com/a/233786
 Start-Process msiexec.exe -Wait -ArgumentList "/i `"$downloadPath\WebDeploy_amd64_en-US.msi`" ADDLOCAL=ALL /qn /L*V `"$logPath\WebDeploy_amd64_en-US.log`" LicenseAccepted=`"0`"" -PassThru | Wait-Process;
+
+Import-Module WebAdministration;
+$pool = Get-Item $applicationPoolPath;
+$pool.ManagedPipelineMode       = 'Integrated';
+$pool.ManagedRuntimeVersion     = 'v4.0';
+$pool.Enable32BitAppOnWin64     = $false;
+$pool.AutoStart                 = $true;
+$pool | Set-Item;
+
+& c:\windows\system32\inetsrv\appcmd.exe unlock config /section:system.webServer/asp;
+& c:\windows\system32\inetsrv\appcmd.exe unlock config /section:system.webServer/handlers;
+& c:\windows\system32\inetsrv\appcmd.exe unlock config /section:system.webServer/modules;
+
+Set-WebConfigurationProperty -Location $siteName -Filter "system.webServer/asp" -Name "enableParentPaths" -Value 'True';
+Set-WebConfigurationProperty -Location $siteName -Filter "system.webServer/asp/limits" -Name "maxRequestEntityAllowed" -Value 2000000000;
+
+# Enable Fusion Logs
+# https://stackoverflow.com/a/33013110
+Set-ItemProperty -Path HKLM:\\Software\\Microsoft\\Fusion -Name ForceLog         -Value 1               -Type DWord;
+Set-ItemProperty -Path HKLM:\\Software\\Microsoft\\Fusion -Name LogFailures      -Value 1               -Type DWord;
+Set-ItemProperty -Path HKLM:\\Software\\Microsoft\\Fusion -Name LogResourceBinds -Value 1               -Type DWord;
+Set-ItemProperty -Path HKLM:\\Software\\Microsoft\\Fusion -Name LogPath          -Value 'C:\inetpub\logs\' -Type String;
+mkdir C:\inetpub\logs -Force;
