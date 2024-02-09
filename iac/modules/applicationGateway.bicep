@@ -4,6 +4,7 @@ param sku string = 'Standard_v2'
 param instances array
 
 var keyVaultSecretsUserRole = resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+var defaultInstance = filter(instances, x => x.pattern == '/*')[0]
 
 resource publicIPAddress 'Microsoft.Network/publicIPAddresses@2022-11-01' existing = {
   name: 'ip-${name}'
@@ -81,6 +82,12 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2021-05-01' =
     ]
     frontendPorts: [
       {
+        name: 'port_80'
+        properties: {
+          port: 80
+        }
+      }
+      {
         name: 'port_443'
         properties: {
           port: 443
@@ -101,13 +108,24 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2021-05-01' =
           cookieBasedAffinity: 'Disabled'
           pickHostNameFromBackendAddress: true
           requestTimeout: 20
-          path: '/'
         }
       }
     ]
     httpListeners: [
       {
-        name: 'Listener'
+        name: 'HttpListener'
+        properties: {
+          frontendIPConfiguration: {
+            id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', 'gw-${name}', 'FrontendIp')
+          }
+          frontendPort: {
+            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', 'gw-${name}', 'port_80')
+          }
+          protocol: 'Http'
+        }
+      }
+      {
+        name: 'HttpsListener'
         properties: {
           frontendIPConfiguration: {
             id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', 'gw-${name}', 'FrontendIp')
@@ -119,6 +137,51 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2021-05-01' =
           sslCertificate: {
             id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', 'gw-${name}', name)
           }
+        }
+      }
+    ]
+    urlPathMaps: [
+      {
+        name: 'PathMap'
+        properties: {
+          defaultBackendAddressPool: {
+            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', 'gw-${name}', '${defaultInstance.name}BackendPool')
+          }
+          defaultBackendHttpSettings: {
+            id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', 'gw-${name}', 'HTTPSetting')
+          }
+          pathRules: [for instance in filter(instances, x => x.pattern != '/*'): {
+            name: '${instance.name}PathRule'
+            properties: {
+              paths: [
+                instance.pattern
+              ]
+              backendAddressPool: {
+                id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', 'gw-${name}', '${instance.name}BackendPool')
+              }
+              backendHttpSettings: {
+                id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', 'gw-${name}', 'HTTPSetting')
+              }
+            }
+          }]
+        }
+      }
+    ]
+    redirectConfigurations: [
+      {
+        name: 'RedirectConfiguration'
+        properties: {
+          redirectType: 'Permanent'
+          targetListener: {
+            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', 'gw-${name}', 'HttpsListener')
+          }
+          includePath: true
+          includeQueryString: true
+          requestRoutingRules: [
+            {
+              id: resourceId('Microsoft.Network/applicationGateways/requestRoutingRules', 'gw-${name}', 'RedirectRule')
+            }
+          ]
         }
       }
     ]
@@ -135,31 +198,16 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2021-05-01' =
           }
         }
       }
-    ]
-    urlPathMaps: [
       {
-        name: 'PathMap'
+        name: 'RedirectRule'
         properties: {
-          defaultBackendAddressPool: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', 'gw-${name}', '${instances[0].name}BackendPool')
+          ruleType: 'Basic'
+          redirectConfiguration: {
+            id: resourceId('Microsoft.Network/applicationGateways/redirectConfigurations', 'gw-${name}', 'RedirectConfiguration') 
           }
-          defaultBackendHttpSettings: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', 'gw-${name}', 'HTTPSetting')
+          httpListener: {
+            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', 'gw-${name}', 'HttpListener')
           }
-          pathRules: [for instance in instances: {
-            name: '${instance.name}PathRule'
-            properties: {
-              paths: [
-                instance.pattern
-              ]
-              backendAddressPool: {
-                id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', 'gw-${name}', '${instance.name}BackendPool')
-              }
-              backendHttpSettings: {
-                id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', 'gw-${name}', 'HTTPSetting')
-              }
-            }
-          }]
         }
       }
     ]
