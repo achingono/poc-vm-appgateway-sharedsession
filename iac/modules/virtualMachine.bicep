@@ -40,7 +40,7 @@ resource virtualMachines 'Microsoft.Compute/virtualMachines@2023-03-01' = [for (
       dataDisks: []
     }
     osProfile: {
-      computerName: take(name, 15)
+      computerName: take('${instance.name}-${name}', 15)
       adminUsername: adminUsername
       adminPassword: adminPassword
       windowsConfiguration: {

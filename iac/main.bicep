@@ -54,6 +54,10 @@ module virtualNetwork 'modules/virtualNetwork.bicep' = {
 module virtualNetworkGateway 'modules/virtualNetworkGateway.bicep' = {
   name: '${deployment().name}--virtualNetworkGateway'
   scope: resourceGroup
+  dependsOn: [
+    publicIPAddress
+    virtualNetwork
+  ]
   params:{
     name: resourceName
     location: resourceGroup.location

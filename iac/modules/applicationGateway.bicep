@@ -1,6 +1,7 @@
 param name string
 param location string
-param sku string = 'Standard_v2'
+param skuName string = 'Standard_v2'
+param skuTier string = 'Standard_v2'
 param instances array
 
 var keyVaultSecretsUserRole = resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
@@ -48,8 +49,8 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2021-05-01' =
   }
   properties: {
     sku: {
-      name: sku
-      tier: sku
+      name: skuName
+      tier: skuTier
     }
     sslCertificates: [
       {
@@ -191,7 +192,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2021-05-01' =
         properties: {
           ruleType: 'PathBasedRouting'
           httpListener: {
-            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', 'gw-${name}', 'Listener')
+            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', 'gw-${name}', 'HttpsListener')
           }
           urlPathMap: {
             id: resourceId('Microsoft.Network/applicationGateways/urlPathMaps', 'gw-${name}', 'PathMap')
