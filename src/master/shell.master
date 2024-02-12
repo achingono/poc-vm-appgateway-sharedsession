@@ -3,37 +3,73 @@
 <html>
 
 <head runat="server">
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-	<base href="/" />
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <base href="/" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
 </head>
 
 <body>
-	<div id="navbarBasicExample" class="navbar-menu">
-		<div class="navbar-start">
-			<a class="navbar-item" href="/">
-				Home
-			</a>
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="https://bulma.io">
+                <img src="/images/classicasp-logo.png" width="112" height="28">
+            </a>
 
-			<a class="navbar-item" href="/api/">
-				Api
-			</a>
-		</div>
-	</div>
-	</nav>
-	<div class="container">
-    <asp:contentplaceholder id="Container" runat="server"></asp:contentplaceholder>
-	</div>
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+
+        <div id="navbarBasicExample" class="navbar-menu">
+            <div class="navbar-start">
+                <a class="navbar-item" href="/">
+                    Home
+                </a>
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-link" href="/">
+                        App
+                    </a>
+                    <div class="navbar-dropdown">
+                        <a class="navbar-item" href="/classic.asp">
+                            Classic ASP
+                        </a>
+                        <a class="navbar-item" href="/dotnet.aspx">
+                            ASP.Net
+                        </a>
+                    </div>
+                </div>
+
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-link" href="/api/">
+                        Api
+                    </a>
+                    <div class="navbar-dropdown">
+                        <a class="navbar-item" href="/api/classic.asp">
+                            Classic ASP
+                        </a>
+                        <a class="navbar-item" href="/api/dotnet.aspx">
+                            ASP.Net
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <asp:contentplaceholder id="Container" runat="server"></asp:contentplaceholder>
+    </div>
 </body>
 <footer class="footer">
-	<div class="content has-text-centered">
-		<p>
-			<strong>Created</strong> by <a href="https://www.chingono.com">Alfero Chingono</a>. The source code is licensed
-			<a href="http://opensource.org/licenses/mit-license.php">MIT</a>. The website content
-			is licensed <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY NC SA 4.0</a>.
-		</p>
-	</div>
+    <div class="content has-text-centered">
+        <p>
+            <strong>Created</strong> by <a href="https://www.chingono.com">Alfero Chingono</a>. The source code is licensed
+            <a href="http://opensource.org/licenses/mit-license.php">MIT</a>. The website content
+            is licensed <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY NC SA 4.0</a>.
+        </p>
+    </div>
 </footer>
 
 </html>

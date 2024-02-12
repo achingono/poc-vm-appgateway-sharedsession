@@ -3,7 +3,6 @@
 	public void Page_Load(object sender, EventArgs args) {
 		if (IsPostBack) {
 			Session[Request.Form["key"]] = Request.Form["value"];
-			throw new Exception("");
 		}
 	}
 	protected void SaveSession_OnClick(object sender, EventArgs args) {
