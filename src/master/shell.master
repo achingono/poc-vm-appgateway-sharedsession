@@ -1,0 +1,39 @@
+<%@ Master Language="VB" Inherits="System.Web.UI.MasterPage" AutoEventWireup="true" Debug="true" %>
+<!DOCTYPE html>
+<html>
+
+<head runat="server">
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+	<base href="/" />
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+</head>
+
+<body>
+	<div id="navbarBasicExample" class="navbar-menu">
+		<div class="navbar-start">
+			<a class="navbar-item" href="/">
+				Home
+			</a>
+
+			<a class="navbar-item" href="/api/">
+				Api
+			</a>
+		</div>
+	</div>
+	</nav>
+	<div class="container">
+    <asp:contentplaceholder id="Container" runat="server"></asp:contentplaceholder>
+	</div>
+</body>
+<footer class="footer">
+	<div class="content has-text-centered">
+		<p>
+			<strong>Created</strong> by <a href="https://www.chingono.com">Alfero Chingono</a>. The source code is licensed
+			<a href="http://opensource.org/licenses/mit-license.php">MIT</a>. The website content
+			is licensed <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY NC SA 4.0</a>.
+		</p>
+	</div>
+</footer>
+
+</html>
