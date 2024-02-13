@@ -1,9 +1,29 @@
-$downloadPath = "C:\Install\Features"
-$logPath = "C:\Install\Logs"
-$siteName = "Default Web Site"
-$applicationPool = "DefaultAppPool"
-$sitePath = "IIS:\Sites\$siteName";
-$applicationPoolPath = "IIS:\\AppPools\\$applicationPool"
+param (
+    [Parameter(Mandatory=$true)]
+    [string] $storageAccountName,
+    [Parameter(Mandatory=$true)]
+    [string] $storageContainerName,
+    [Parameter(Mandatory=$true)]
+    [string] $storageFileName,
+    [Parameter(Mandatory=$true)]
+    [string] $storageKey,
+    [Parameter(Mandatory=$false)]
+    [string] $downloadPath = "C:\Install\Features",
+    [Parameter(Mandatory=$false)]
+    [string] $logPath = "C:\Install\Logs",
+    [Parameter(Mandatory=$false)]
+    [string] $siteName = "Default Web Site",
+    [Parameter(Mandatory=$false)]
+    [string] $applicationPool = "DefaultAppPool",
+    [Parameter(Mandatory=$false)]
+    [string] $sitePath = "IIS:\Sites\$siteName",
+    [Parameter(Mandatory=$false)]
+    [string] $applicationPoolPath = "IIS:\\AppPools\\$applicationPool"
+)
+$codePath = "C:\Source";
+$nugetPath = "$codePath\nuget";
+$packagesPath = "$codePath\packages";
+$binPath = "$codePath\bin";
 
 # Configure WinRM for HTTPS
 Enable-PSRemoting -Force;
@@ -49,6 +69,7 @@ Start-Service -Name WMSVC;
 
 mkdir $downloadPath;
 mkdir $logPath;
+$ProgressPreference = 'SilentlyContinue'; 
 
 # Install C++ 2017 distributions
 #Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://vcredist.com/install.ps1'));
@@ -100,3 +121,28 @@ Set-ItemProperty -Path HKLM:\\Software\\Microsoft\\Fusion -Name LogFailures     
 Set-ItemProperty -Path HKLM:\\Software\\Microsoft\\Fusion -Name LogResourceBinds -Value 1               -Type DWord;
 Set-ItemProperty -Path HKLM:\\Software\\Microsoft\\Fusion -Name LogPath          -Value 'C:\inetpub\logs\' -Type String;
 mkdir C:\inetpub\logs -Force;
+
+# Install Azure CLI
+Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile "$downloadPath\AzureCLI.msi"; 
+Start-Process msiexec.exe -Wait -ArgumentList "/I `"$downloadPath\AzureCLI.msi`" /quiet"; 
+az config set extension.use_dynamic_install=yes_without_prompt;
+
+# Download Source Code
+az config set extension.use_dynamic_install=yes_without_prompt;
+az storage azcopy blob download --account-name $storageAccountName --container $storageContainerName --source $storageFileName --destination "$downloadPath\$storageFileName" --account-key $storageKey;
+
+# Unzip Source Code
+Expand-Archive -Path "$downloadPath\$storageFileName" -DestinationPath $codePath -Force;
+
+# download the nuget binary
+$sourceNugetExe = "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe"
+$targetNugetExe = "$nugetPath\nuget.exe"
+mkdir -Path $nugetPath
+Invoke-WebRequest $sourceNugetExe -OutFile $targetNugetExe
+Set-Alias nuget $targetNugetExe -Scope Global -Verbose
+# install nuget package
+nuget install Microsoft.Web.RedisSessionStateProvider -OutputDirectory $nugetPackagesPath -Framework net46
+# copy binaries to bin folder
+Get-ChildItem -Path $nugetPackagesPath -Recurse | Where-Object { $_.FullName -match "\\lib\\net4.*\\.*\.dll"} | ForEach-Object {
+    Copy-Item -Path $_.FullName -Destination $binPath
+}

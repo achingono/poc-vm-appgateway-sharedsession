@@ -8,6 +8,8 @@ param uniqueSuffix string
 param adminUsername string
 @secure()
 param adminPassword string
+param databasePackageName string
+param sourcePackageName string
 param instances array = [
   {
     name: 'app'
@@ -132,11 +134,22 @@ module command 'modules/runCommand.bicep' = {
   scope: resourceGroup
   dependsOn: [
     virtualMachine
+    storage
   ]
   params: {
     name: resourceName
     location: location
     instances: instances
+    packageName: sourcePackageName
+  }
+}
+
+module storage 'modules/storage.bicep' = {
+  name: '${deployment().name}--storage'
+  scope: resourceGroup
+  params: {
+    name: resourceName
+    location: resourceGroup.location
   }
 }
 
@@ -145,12 +158,14 @@ module sqlServer 'modules/sqlServer.bicep' = {
   scope: resourceGroup
   dependsOn: [
     virtualNetwork
+    storage
   ]
   params: {
     name: resourceName
     location: resourceGroup.location
     adminPassword: adminPassword
     adminUsername: adminUsername
+    packageName: databasePackageName
   }
 }
 

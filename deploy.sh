@@ -21,6 +21,22 @@ fi
 SECONDS=0
 echo "Start time: $(date)"
 
+# create resource group
+RESOURCE_GROUP='rg-${NAME}-${LOCATION}-${CODE}'
+az group create --name $RESOURCE_GROUP --location $LOCATION
+
+# create a storage account
+STORAGE_ACCOUNT=$(echo "stg${NAME}${CODE}" | tr '-' '')
+
+# zip the source code
+zip -r ./pkg/source.zip ./src
+
+# Copy the bacpac file to the storage account
+az storage azcopy blob upload --container $NAME --account-name $STORAGE_ACCOUNT --source ./pkg/database.bacpac --destination database.bacpac
+
+# Copy the source code to the storage account
+az storage azcopy blob upload --container $NAME --account-name $STORAGE_ACCOUNT --source ./pkg/source.zip --destination source.zip
+
 # provision infrastructure
 az deployment sub create \
     --name $NAME \
