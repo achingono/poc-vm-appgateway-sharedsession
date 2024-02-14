@@ -29,22 +29,23 @@ RESOURCE_GROUP="rg-${NAME}-${LOCATION}-${CODE}"
 az group create --name $RESOURCE_GROUP --location $LOCATION
 
 STORAGE_ACCOUNT="stg${NAME}${CODE}"
+STORAGE_CONTAINER="${NAME}-${CODE}"
 # remove invalid characters from the storage account name
 STORAGE_ACCOUNT=$(echo $STORAGE_ACCOUNT | tr -d -c 'a-z0-9')
 # create a storage account
-az storage account create --name $STORAGE_ACCOUNT --resource-group $RESOURCE_GROUP --location $LOCATION --sku Standard_LRS
+az storage account create --name $STORAGE_ACCOUNT --resource-group $RESOURCE_GROUP --location $LOCATION --sku Standard_LRS --allow-blob-public-access true
 
 # create a container
-az storage container create --name $NAME --account-name $STORAGE_ACCOUNT --public-access blob
+az storage container create --name $STORAGE_CONTAINER --account-name $STORAGE_ACCOUNT --public-access blob
 
 # zip the source code
 zip -r ./pkg/source.zip ./src -x "./src/bin/*" "./src/packages/*"
 
 # Copy the bacpac file to the storage account
-az storage azcopy blob upload --container $NAME --account-name $STORAGE_ACCOUNT --source ./pkg/database.bacpac --destination database.bacpac
+az storage azcopy blob upload --container $STORAGE_CONTAINER --account-name $STORAGE_ACCOUNT --source ./pkg/database.bacpac --destination database.bacpac
 
 # Copy the source code to the storage account
-az storage azcopy blob upload --container $NAME --account-name $STORAGE_ACCOUNT --source ./pkg/source.zip --destination source.zip
+az storage azcopy blob upload --container $STORAGE_CONTAINER --account-name $STORAGE_ACCOUNT --source ./pkg/source.zip --destination source.zip
 
 # provision infrastructure
 az deployment sub create \
