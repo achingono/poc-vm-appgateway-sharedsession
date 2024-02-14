@@ -21,12 +21,21 @@ fi
 SECONDS=0
 echo "Start time: $(date)"
 
+# configure az cli dynamic install
+az config set extension.use_dynamic_install=yes_without_prompt;
+
 # create resource group
-RESOURCE_GROUP='rg-${NAME}-${LOCATION}-${CODE}'
+RESOURCE_GROUP="rg-${NAME}-${LOCATION}-${CODE}"
 az group create --name $RESOURCE_GROUP --location $LOCATION
 
+STORAGE_ACCOUNT="stg${NAME}${CODE}"
+# remove invalid characters from the storage account name
+STORAGE_ACCOUNT=$(echo $STORAGE_ACCOUNT | tr -d -c 'a-z0-9')
 # create a storage account
-STORAGE_ACCOUNT=$(echo "stg${NAME}${CODE}" | tr '-' '')
+az storage account create --name $STORAGE_ACCOUNT --resource-group $RESOURCE_GROUP --location $LOCATION --sku Standard_LRS
+
+# create a container
+az storage container create --name $NAME --account-name $STORAGE_ACCOUNT --public-access blob
 
 # zip the source code
 zip -r ./pkg/source.zip ./src -x "./src/bin/*" "./src/packages/*"
@@ -46,7 +55,9 @@ az deployment sub create \
     --parameters location=$LOCATION \
     --parameters uniqueSuffix=$CODE \
     --parameters adminUsername=$USERNAME \
-    --parameters adminPassword=$PASSWORD
+    --parameters adminPassword=$PASSWORD \
+    --parameters sourcePackageName=source.zip \
+    --parameters databasePackageName=database.bacpac
 
 duration=$SECONDS
 echo "End time: $(date)"
