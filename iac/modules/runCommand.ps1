@@ -20,17 +20,19 @@ param (
     [Parameter(Mandatory=$false)]
     [string] $applicationPoolPath = "IIS:\\AppPools\\$applicationPool"
 )
-$codePath = "C:\Source";
+$siteRoot = "C:\inetpub\wwwroot";
+$codePath = "C:\Install\Package";
 $nugetPath = "$codePath\nuget";
 $packagesPath = "$codePath\packages";
-$binPath = "$codePath\bin";
+$binPath = "$siteRoot\bin";
+$archivePath = "$downloadPath\$storageFileName";
+$archiveUri = "https://$storageAccountName.blob.core.windows.net/$storageContainerName/$storageFileName";
+$sourceNugetExe = "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe"
+$targetNugetExe = "$nugetPath\nuget.exe"
 
-# Configure WinRM for HTTPS
-Enable-PSRemoting -Force;
-New-NetFirewallRule -Name "Allow WinRM HTTPS" -DisplayName "Windows Remote Management (HTTPS-In)" -Enabled True -Profile Any -Action Allow -Direction Inbound -LocalPort 5986 -Protocol TCP;
-$thumbprint = (New-SelfSignedCertificate -DnsName $env:COMPUTERNAME -CertStoreLocation Cert:\LocalMachine\My).Thumbprint;
-$command = "winrm create winrm/config/Listener?Address=*+Transport=HTTPS @{Hostname=""$env:computername""; CertificateThumbprint=""$thumbprint""}";
-cmd.exe /C $command;
+mkdir $downloadPath;
+mkdir $logPath;
+$ProgressPreference = 'SilentlyContinue'; 
 
 # Add Windows Features
 Add-WindowsFeature Web-Server, `
@@ -67,26 +69,22 @@ Set-Service -Name WMSVC -StartupType Automatic;
 # Start IIS Remote Management Service
 Start-Service -Name WMSVC;
 
-mkdir $downloadPath;
-mkdir $logPath;
-$ProgressPreference = 'SilentlyContinue'; 
-
 # Install C++ 2017 distributions
 #Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://vcredist.com/install.ps1'));
 Invoke-WebRequest 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile "$downloadPath\vc_redist.x64.exe" -UseBasicParsing;
 Unblock-File "$downloadPath\vc_redist.x64.exe";
-Start-Process msiexec.exe -Wait -ArgumentList "/i `"$downloadPath\vc_redist.x64.exe`" /qn ALLUSERS=1 REBOOT=ReallySuppress /L*V `"$logPath\vc_redist.x64.log`"" -PassThru | Wait-Process;
+Start-Process -FilePath "$downloadPath\vc_redist.x64.exe" -Wait -ArgumentList "/install /quiet /norestart /log `"$logPath\vc_redist.x64.log`"" -PassThru | Wait-Process;
 
 Invoke-WebRequest 'https://aka.ms/vs/17/release/vc_redist.x86.exe' -OutFile "$downloadPath\vc_redist.x86.exe" -UseBasicParsing;
 Unblock-File "$downloadPath\vc_redist.x86.exe";
-Start-Process msiexec.exe -Wait -ArgumentList "/i `"$downloadPath\vc_redist.x86.exe`" /qn ALLUSERS=1 REBOOT=ReallySuppress /L*V `"$logPath\vc_redist.x86.log`"" -PassThru | Wait-Process;
+Start-Process -FilePath "$downloadPath\vc_redist.x86.exe" -Wait -ArgumentList "/install /quiet /norestart /log `"$logPath\vc_redist.x86.log`"" -PassThru | Wait-Process;
 
 # Install ODBC Driver
 #Invoke-WebRequest 'https://download.microsoft.com/download/c/5/4/c54c2bf1-87d0-4f6f-b837-b78d34d4d28a/en-US/18.2.1.1/x64/msodbcsql.msi' -OutFile "$downloadPath\msodbcsql18.msi";
-#Start-Process "$PSScriptRoot\msodbcsql18.msi" 'IACCEPTMSODBCSQLLICENSETERMS=YES /qn' -PassThru | Wait-Process;
+#Start-Process "$PSScriptRoot\msodbcsql18.msi" 'IACCEPTMSOLEDBSQLLICENSETERMS=YES /qn' -PassThru | Wait-Process;
 Invoke-WebRequest 'https://download.microsoft.com/download/f/1/3/f13ce329-0835-44e7-b110-44decd29b0ad/en-US/19.3.1.0/x64/msoledbsql.msi' -OutFile "$downloadPath\msodbcsql19.msi" -UseBasicParsing;
 Unblock-File "$downloadPath\msodbcsql19.msi";
-Start-Process msiexec.exe -Wait -ArgumentList "/i `"$downloadPath\msodbcsql19.msi`" IACCEPTMSOLEDBCSQLLICENSETERMS=YES /qn /L*V `"$logPath\msodbcsql19.log`"" -PassThru | Wait-Process;
+Start-Process msiexec.exe -Wait -ArgumentList "/i `"$downloadPath\msodbcsql19.msi`" IACCEPTMSOLEDBSQLLICENSETERMS=YES /qn /L*V `"$logPath\msodbcsql19.log`"" -PassThru | Wait-Process;
 
 # Install IIS Rewrite Module
 Invoke-WebRequest 'https://download.microsoft.com/download/1/2/8/128E2E22-C1B9-44A4-BE2A-5859ED1D4592/rewrite_amd64_en-US.msi' -OutFile "$downloadPath\rewrite_amd64_en-US.msi" -UseBasicParsing;
@@ -122,27 +120,28 @@ Set-ItemProperty -Path HKLM:\\Software\\Microsoft\\Fusion -Name LogResourceBinds
 Set-ItemProperty -Path HKLM:\\Software\\Microsoft\\Fusion -Name LogPath          -Value 'C:\inetpub\logs\' -Type String;
 mkdir C:\inetpub\logs -Force;
 
-# Install Azure CLI
-Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile "$downloadPath\AzureCLI.msi"; 
-Start-Process msiexec.exe -Wait -ArgumentList "/I `"$downloadPath\AzureCLI.msi`" /quiet"; 
-az config set extension.use_dynamic_install=yes_without_prompt;
-
-# Download Source Code
-az config set extension.use_dynamic_install=yes_without_prompt;
-az storage azcopy blob download --account-name $storageAccountName --container $storageContainerName --source $storageFileName --destination "$downloadPath\$storageFileName" --account-key $storageKey;
+# Download the Source Code
+Invoke-WebRequest -Uri $archiveUri -OutFile $archivePath; 
 
 # Unzip Source Code
-Expand-Archive -Path "$downloadPath\$storageFileName" -DestinationPath $codePath -Force;
+New-Item -ItemType Directory -Path $archivePath -Force | Out-Null;
+Expand-Archive -Path $archivePath -DestinationPath $codePath -Force;
 
-# download the nuget binary
-$sourceNugetExe = "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe"
-$targetNugetExe = "$nugetPath\nuget.exe"
+New-Item -ItemType Directory -Path $siteRoot -Force | Out-Null;
+Copy-Item -Path "$codePath\src\*" -Destination $siteRoot -Recurse -Force;
+
+# Download nuget.exe
 mkdir -Path $nugetPath
 Invoke-WebRequest $sourceNugetExe -OutFile $targetNugetExe
-Set-Alias nuget $targetNugetExe -Scope Global -Verbose
-# install nuget package
-nuget install Microsoft.Web.RedisSessionStateProvider -OutputDirectory $nugetPackagesPath -Framework net46
+Set-Alias nuget $targetNugetExe -Scope Local -Verbose
+
+# install nuget packages
+nuget install Microsoft.Web.RedisSessionStateProvider -OutputDirectory $packagesPath
+#nuget install Microsoft.AspNet.SessionState.SessionStateModule -OutputDirectory $packagesPath -Framework net46
+#nuget install StackExchange.Redis -OutputDirectory $packagesPath -Framework net46
+
 # copy binaries to bin folder
-Get-ChildItem -Path $nugetPackagesPath -Recurse | Where-Object { $_.FullName -match "\\lib\\net4.*\\.*\.dll"} | ForEach-Object {
-    Copy-Item -Path $_.FullName -Destination $binPath
+mkdir $binPath;
+Get-ChildItem -Path $packagesPath -Recurse | Where-Object { $_.FullName -match "\\lib\\net4.*\\.*\.dll"} | ForEach-Object {
+    Copy-Item -Path $_.FullName -Destination $binPath -Force;
 }
