@@ -29,7 +29,7 @@ az group create --name $RESOURCE_GROUP --location $LOCATION
 STORAGE_ACCOUNT=$(echo "stg${NAME}${CODE}" | tr '-' '')
 
 # zip the source code
-zip -r ./pkg/source.zip ./src
+zip -r ./pkg/source.zip ./src -x "./src/bin/*" "./src/packages/*"
 
 # Copy the bacpac file to the storage account
 az storage azcopy blob upload --container $NAME --account-name $STORAGE_ACCOUNT --source ./pkg/database.bacpac --destination database.bacpac
