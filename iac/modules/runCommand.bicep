@@ -47,7 +47,7 @@ resource deploymentscript 'Microsoft.Compute/virtualMachines/runCommands@2022-03
         value: storageAccount.listKeys().keys[0].value
       }
     ]
-    outputBlobUri: 'https://${storageAccount.properties.primaryEndpoints.blob}/${blobContainer.name}/runCommand-${instance.name}.log'
-    errorBlobUri: 'https://${storageAccount.properties.primaryEndpoints.blob}/${blobContainer.name}/runCommand-${instance.name}-error.log'
+    outputBlobUri: '${storageAccount.properties.primaryEndpoints.blob}${blobContainer.name}/runCommand-${instance.name}.log'
+    errorBlobUri: '${storageAccount.properties.primaryEndpoints.blob}${blobContainer.name}/runCommand-${instance.name}-error.log'
   }
 }]
