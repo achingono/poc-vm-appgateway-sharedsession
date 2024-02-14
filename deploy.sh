@@ -60,6 +60,20 @@ az deployment sub create \
     --parameters sourcePackageName=source.zip \
     --parameters databasePackageName=database.bacpac
 
+# import the bacpac file
+#az sql db import --name "db-${NAME}-${CODE}" \
+#    --server "sql-${NAME}-${CODE}" --resource-group $RESOURCE_GROUP \
+#     --auth-type SQL --admin-user $USERNAME --admin-password $PASSWORD \
+#    --storage-uri https://$STORAGE_ACCOUNT.blob.core.windows.net/$STORAGE_CONTAINER/database.bacpac \
+#    --storage-key $(az storage account keys list --account-name $STORAGE_ACCOUNT --resource-group $RESOURCE_GROUP --query "[0].value" -o tsv) \
+#    --storage-key-type StorageAccessKey
+
+# remove sql server firewall rule
+az sql server firewall-rule delete --name "AllowAllWindowsAzureIps" --resource-group $RESOURCE_GROUP --server "sql-${NAME}-${CODE}"
+
+# remove the source code
+rm ./pkg/source.zip
+
 duration=$SECONDS
 echo "End time: $(date)"
 echo "$(($duration / 3600)) hours, $(($duration / 60)) minutes and $(($duration % 60)) seconds elapsed."

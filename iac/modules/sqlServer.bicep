@@ -41,14 +41,6 @@ resource server 'Microsoft.Sql/servers@2022-11-01-preview' = {
   }
 }
 
-resource virtualNetworkRule 'Microsoft.Sql/servers/virtualNetworkRules@2021-11-01' = {
-  name: 'AllowSubnetIps'
-  parent: server
-  properties: {
-    virtualNetworkSubnetId: subnet.id
-  }
-}
-
 resource database 'Microsoft.Sql/servers/databases@2021-05-01-preview' = {
   name: 'db-${name}'
   parent: server
@@ -57,6 +49,23 @@ resource database 'Microsoft.Sql/servers/databases@2021-05-01-preview' = {
     name: databaseSku
     tier: databaseTier
     capacity: databaseCapacity
+  }
+}
+
+resource virtualNetworkRule 'Microsoft.Sql/servers/virtualNetworkRules@2021-11-01' = {
+  name: 'AllowSubnetIps'
+  parent: server
+  properties: {
+    virtualNetworkSubnetId: subnet.id
+  }
+}
+
+resource firewallRule 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
+  name: 'AllowAllWindowsAzureIps'
+  parent: server
+  properties: {
+    startIpAddress: '0.0.0.0'
+    endIpAddress: '0.0.0.0'
   }
 }
 
