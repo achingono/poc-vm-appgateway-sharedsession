@@ -129,6 +129,19 @@ module virtualMachine 'modules/virtualMachine.bicep' = {
   }
 }
 
+module storage 'modules/storage.bicep' = {
+  name: '${deployment().name}--storage'
+  scope: resourceGroup
+  dependsOn: [
+    virtualMachine
+  ]
+  params: {
+    name: resourceName
+    location: resourceGroup.location
+    instances: instances
+  }
+}
+
 module command 'modules/runCommand.bicep' = {
   name: '${deployment().name}--command'
   scope: resourceGroup
@@ -141,15 +154,6 @@ module command 'modules/runCommand.bicep' = {
     location: location
     instances: instances
     packageName: sourcePackageName
-  }
-}
-
-module storage 'modules/storage.bicep' = {
-  name: '${deployment().name}--storage'
-  scope: resourceGroup
-  params: {
-    name: resourceName
-    location: resourceGroup.location
   }
 }
 
