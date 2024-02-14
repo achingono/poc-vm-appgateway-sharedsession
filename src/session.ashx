@@ -3,32 +3,33 @@ using System;
 using System.Web;
 using System.Web.Configuration;
 using System.Web.SessionState;
-using Newtonsoft.Json;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
+using System.Xml.Linq;
 
 public class SessionHandler : IHttpHandler, IRequiresSessionState {
 
-    public void ProcessRequest (HttpContext context) {
-        var collection = new List<dynamic>();
-
+    public void ProcessRequest(HttpContext context) {
         if (context.Request.RequestType.Equals("POST", StringComparison.OrdinalIgnoreCase)
-            && !string.IsNullOrEmpty(context.Request.Form["key"]))
-        {
+            && !string.IsNullOrEmpty(context.Request.Form["key"])) {
             context.Session[context.Request.Form["key"]] = context.Request.Form["value"];
         }
 
-        context.Response.ContentType = "application/xml";
-        context.Response.Write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-        context.Response.Write("<session>");
+        XElement element = new XElement("session");
 
-        foreach(string key in context.Session.Contents)
-        {
-            context.Response.Write("<item key=\"" + key + "\" value=\"" + context.Session[key].ToString() + "\" />");
+        foreach (string key in context.Session.Keys) {
+            XElement itemElement = new XElement("item",
+                new XAttribute("key", key),
+                new XAttribute("value", null == string.Format("{0}", context.Session[key]))
+            );
+            element.Add(itemElement);
         }
 
-        context.Response.Write("</session>");
+        XDocument document = new XDocument(new XDeclaration("1.0", "UTF-8", null), element);
+
+        context.Response.ContentType = "application/xml";
+        context.Response.Write(document.Declaration.ToString());
+        context.Response.Write(document.ToString());
     }
 
     public bool IsReusable {

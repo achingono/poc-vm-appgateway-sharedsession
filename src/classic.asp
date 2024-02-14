@@ -14,9 +14,6 @@ If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
     HttpClient.setRequestHeader "Content-Length", Len(data)
     HttpClient.send data
 
-Response.Write(HttpClient.Status)
-Response.Write(HttpClient.ResponseText)
-
     If HttpClient.Status = 200 Then
         Set XmlDom = HttpClient.ResponseXML
         
