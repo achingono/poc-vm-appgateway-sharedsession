@@ -10,6 +10,9 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
   sku: {
     name: sku
   }
+  properties: {
+    allowBlobPublicAccess: true
+  }
 }
 
 resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2021-06-01' = {
