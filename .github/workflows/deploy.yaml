@@ -58,6 +58,7 @@ jobs:
           # create a storage account
           az storage account create --name $STORAGE_ACCOUNT \
                           --location ${{ vars.AZURE_LOCATION }} \
+                          --resource-group $RESOURCE_GROUP \
                           --sku Standard_LRS \
                           --allow-blob-public-access true
 
@@ -71,7 +72,6 @@ jobs:
           # create a container
           az storage container create --name $STORAGE_CONTAINER \
                           --account-name $STORAGE_ACCOUNT \
-                          --resource-group $RESOURCE_GROUP \
                           --public-access blob
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
