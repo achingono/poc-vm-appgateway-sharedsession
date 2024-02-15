@@ -57,10 +57,16 @@ jobs:
 
           # create a storage account
           az storage account create --name $STORAGE_ACCOUNT \
-                          --resource-group $RESOURCE_GROUP \
                           --location ${{ vars.AZURE_LOCATION }} \
                           --sku Standard_LRS \
                           --allow-blob-public-access true
+
+          # wait for the storage account to be created
+          while [[ $(az storage account show --name $STORAGE_ACCOUNT \
+                          --query "provisioningState" \
+                          --output tsv) != "Succeeded" ]]; do
+            sleep 5
+          done
 
           # create a container
           az storage container create --name $STORAGE_CONTAINER \
