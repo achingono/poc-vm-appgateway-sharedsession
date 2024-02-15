@@ -97,8 +97,7 @@ jobs:
           # check if the bacpac file exists in storage container
           blobexists=$(az storage blob exists --container-name $STORAGE_CONTAINER \
                           --name database.bacpac \
-                          --account-name $STORAGE_ACCOUNT \
-                          --resource-group $RESOURCE_GROUP)
+                          --account-name $STORAGE_ACCOUNT)
 
           if [[ $blobcheck == *"false"* ]]; then                
             # Copy the bacpac file to the storage account
@@ -131,8 +130,7 @@ jobs:
           # check if the bacpac file exists in storage container
           blobexists=$(az storage blob exists --container-name $STORAGE_CONTAINER \
                           --name source.zip \
-                          --account-name $STORAGE_ACCOUNT \
-                          --resource-group $RESOURCE_GROUP)
+                          --account-name $STORAGE_ACCOUNT)
 
           if [[ $blobcheck == *"false"* ]]; then                
             # Copy the zip file to the storage account
