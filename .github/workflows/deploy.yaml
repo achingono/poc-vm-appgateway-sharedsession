@@ -64,6 +64,7 @@ jobs:
 
           # wait for the storage account to be created
           while [[ $(az storage account show --name $STORAGE_ACCOUNT \
+                          --resource-group $RESOURCE_GROUP \
                           --query "provisioningState" \
                           --output tsv) != "Succeeded" ]]; do
             sleep 5
