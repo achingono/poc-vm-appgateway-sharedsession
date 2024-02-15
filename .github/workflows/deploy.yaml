@@ -1,0 +1,165 @@
+# This workflow deploys the full solution
+
+name: Deploy Solution
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  environment:
+    name: Determine Environment Name
+    uses: ./.github/workflows/environment.yaml     
+
+  validate:
+    needs: [environment]
+    name: Validate Environment Configuration
+    uses: ./.github/workflows/validate.yaml
+    with:
+      environment: ${{ needs.environment.outputs.name }}
+    secrets: 
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+
+  package:
+    needs: [environment, validate]
+    name: Package Source Code
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ needs.environment.outputs.name }}
+
+    steps:
+      - name: Create Zip Package
+        id: zip
+        run: |
+          # zip the source code
+          zip -r ./pkg/source.zip ./src -x "./src/bin/*" "./src/packages/*"
+        
+  storage:
+    needs: [environment, validate]
+    name: Provision Storage Account 
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.resource.outputs.name }}
+    environment: 
+      name: ${{ needs.environment.outputs.name }}
+
+    steps:
+      - uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Create Group
+        id: resource
+        run: |
+          # create resource group
+          az group create --name $RESOURCE_GROUP \
+                          --location ${{ vars.AZURE_LOCATION }}
+
+          # create a storage account
+          az storage account create --name $STORAGE_ACCOUNT \
+                          --resource-group $RESOURCE_GROUP \
+                          --location ${{ vars.AZURE_LOCATION }} \
+                          --sku Standard_LRS \
+                          --allow-blob-public-access true
+
+          # create a container
+          az storage container create --name $STORAGE_CONTAINER \
+                          --account-name $STORAGE_ACCOUNT \
+                          --resource-group $RESOURCE_GROUP \
+                          --public-access blob
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
+          STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
+          STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+
+  upload-database:
+    needs: [environment, storage]
+    name: Upload Database Package
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ needs.environment.outputs.name }}
+
+    steps:
+      - uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Upload File
+        id: upload
+        run: |
+          # check if the bacpac file exists in storage container
+          blobexists=$(az storage blob exists --container-name $STORAGE_CONTAINER \
+                          --name database.bacpac \
+                          --account-name $STORAGE_ACCOUNT \
+                          --resource-group $RESOURCE_GROUP)
+
+          if [[ $blobcheck == *"false"* ]]; then                
+            # Copy the bacpac file to the storage account
+            az storage azcopy blob upload --container $STORAGE_CONTAINER \
+                            --account-name $STORAGE_ACCOUNT \
+                            --resource-group $RESOURCE_GROUP \
+                            --source ./pkg/database.bacpac \
+                            --destination database.bacpac
+          fi
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
+          STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
+          STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+
+  upload-source:
+    needs: [environment, package, storage]
+    name: Upload Database Package
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ needs.environment.outputs.name }}
+
+    steps:
+      - uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Upload File
+        id: upload
+        run: |
+          # check if the bacpac file exists in storage container
+          blobexists=$(az storage blob exists --container-name $STORAGE_CONTAINER \
+                          --name source.zip \
+                          --account-name $STORAGE_ACCOUNT \
+                          --resource-group $RESOURCE_GROUP)
+
+          if [[ $blobcheck == *"false"* ]]; then                
+            # Copy the zip file to the storage account
+            az storage azcopy blob upload --container $STORAGE_CONTAINER \
+                            --account-name $STORAGE_ACCOUNT \
+                            --resource-group $RESOURCE_GROUP \
+                            --source ./pkg/source.zip \
+                            --destination source.zip
+          fi
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
+          STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
+          STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+
+  provision:
+    needs: [environment, storage, upload-source, upload-database]
+    name: Provision Infrastructure
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ needs.environment.outputs.name }}
+    
+    steps:
+      - uses: actions/checkout@v2   
+      - uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Deploy
+        run: |
+          # provision infrastructure
+          az deployment sub create \
+              --name ${{ vars.AZURE_NAME }} \
+              --location ${{ vars.AZURE_LOCATION }} \
+              --template-file ./iac/main.bicep \
+              --parameters name=${{ vars.AZURE_NAME }} \
+              --parameters location=${{ vars.AZURE_LOCATION }} \
+              --parameters uniqueSuffix=${{ vars.AZURE_SUFFIX }} \
+              --parameters adminUsername=${{ secrets.AZURE_USERNAME }} \
+              --parameters adminPassword=${{ secrets.AZURE_PASSWORD }} \
+              --parameters sourcePackageName=source.zip \
+              --parameters databasePackageName=database.bacpac
