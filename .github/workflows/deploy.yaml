@@ -28,6 +28,7 @@ jobs:
       name: ${{ needs.environment.outputs.name }}
 
     steps:
+      - uses: actions/checkout@v2   
       - name: Create Zip Package
         id: zip
         run: |
@@ -79,6 +80,7 @@ jobs:
       name: ${{ needs.environment.outputs.name }}
 
     steps:
+      - uses: actions/checkout@v2   
       - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
@@ -106,12 +108,13 @@ jobs:
 
   upload-source:
     needs: [environment, package, storage]
-    name: Upload Database Package
+    name: Upload Source Package
     runs-on: ubuntu-latest
     environment: 
       name: ${{ needs.environment.outputs.name }}
 
     steps:
+      - uses: actions/checkout@v2   
       - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
