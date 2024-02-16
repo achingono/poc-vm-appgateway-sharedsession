@@ -1,35 +1,22 @@
 param (
     [Parameter(Mandatory=$true)]
-    [string] $storageAccountName,
-    [Parameter(Mandatory=$true)]
-    [string] $storageContainerName,
-    [Parameter(Mandatory=$true)]
-    [string] $storageFileName,
-    [Parameter(Mandatory=$true)]
-    [string] $storageKey,
+    [string] $siteName = "",
+    [Parameter(Mandatory=$false)]
+    [string] $applicationPool = "",
     [Parameter(Mandatory=$false)]
     [string] $downloadPath = "C:\Install\Features",
     [Parameter(Mandatory=$false)]
-    [string] $logPath = "C:\Install\Logs",
-    [Parameter(Mandatory=$false)]
-    [string] $siteName = "Default Web Site",
-    [Parameter(Mandatory=$false)]
-    [string] $applicationPool = "DefaultAppPool",
-    [Parameter(Mandatory=$false)]
-    [string] $sitePath = "IIS:\Sites\$siteName",
-    [Parameter(Mandatory=$false)]
-    [string] $applicationPoolPath = "IIS:\\AppPools\\$applicationPool"
+    [string] $logPath = "C:\Install\Logs"
 )
-$siteRoot = "C:\inetpub\wwwroot";
-$codePath = "C:\Install\Package";
-$nugetPath = "$codePath\nuget";
-$packagesPath = "$codePath\packages";
-$binPath = "$siteRoot\bin";
-$archivePath = "$downloadPath\$storageFileName";
-$archiveUri = "https://$storageAccountName.blob.core.windows.net/$storageContainerName/$storageFileName";
-$sourceNugetExe = "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe"
-$targetNugetExe = "$nugetPath\nuget.exe"
 
+if ($null -eq $applicationPool -or "" -eq $applicationPool) {
+    $applicationPool = $siteName;
+}
+$siteFolder = "C:\inetpub\$siteName";
+$sitePath = "IIS:\Sites\$siteName";
+$applicationPoolPath = "IIS:\\AppPools\\$applicationPool";
+
+mkdir $siteFolder
 mkdir $downloadPath;
 mkdir $logPath;
 $ProgressPreference = 'SilentlyContinue'; 
@@ -56,10 +43,10 @@ Install-WindowsFeature Web-ASP, `
                        Web-Scripting-Tools;
 
 # Enable IIS Features
-Enable-WindowsOptionalFeature -Online -FeatureName IIS-DefaultDocument, `
-                                                   IIS-HttpErrors;
+Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-DefaultDocument, `
+                                                              IIS-HttpErrors;
 # Enable IIS Remote Management
-Enable-WindowsOptionalFeature -Online -FeatureName IIS-ManagementService;
+Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName IIS-ManagementService;
 # Enable remote management for IIS
 Set-ItemProperty -Path HKLM:\\SOFTWARE\\Microsoft\\WebManagement\\Server -Name EnableRemoteManagement -Value 1 -Force
 Set-ItemProperty -Path HKLM:\\SOFTWARE\\Microsoft\\WebManagement\\Server -Name EnableLogging -Value 1 -Force
@@ -97,20 +84,10 @@ Unblock-File "$downloadPath\WebDeploy_amd64_en-US.msi";
 # https://serverfault.com/a/233786
 Start-Process msiexec.exe -Wait -ArgumentList "/i `"$downloadPath\WebDeploy_amd64_en-US.msi`" ADDLOCAL=ALL /qn /L*V `"$logPath\WebDeploy_amd64_en-US.log`" LicenseAccepted=`"0`"" -PassThru | Wait-Process;
 
-Import-Module WebAdministration;
-$pool = Get-Item $applicationPoolPath;
-$pool.ManagedPipelineMode       = 'Integrated';
-$pool.ManagedRuntimeVersion     = 'v4.0';
-$pool.Enable32BitAppOnWin64     = $false;
-$pool.AutoStart                 = $true;
-$pool | Set-Item;
-
+# Unlock IIS Configuration sections
 & c:\windows\system32\inetsrv\appcmd.exe unlock config /section:system.webServer/asp;
 & c:\windows\system32\inetsrv\appcmd.exe unlock config /section:system.webServer/handlers;
 & c:\windows\system32\inetsrv\appcmd.exe unlock config /section:system.webServer/modules;
-
-Set-WebConfigurationProperty -Location $siteName -Filter "system.webServer/asp" -Name "enableParentPaths" -Value 'True';
-Set-WebConfigurationProperty -Location $siteName -Filter "system.webServer/asp/limits" -Name "maxRequestEntityAllowed" -Value 2000000000;
 
 # Enable Fusion Logs
 # https://stackoverflow.com/a/33013110
@@ -120,28 +97,73 @@ Set-ItemProperty -Path HKLM:\\Software\\Microsoft\\Fusion -Name LogResourceBinds
 Set-ItemProperty -Path HKLM:\\Software\\Microsoft\\Fusion -Name LogPath          -Value 'C:\inetpub\logs\' -Type String;
 mkdir C:\inetpub\logs -Force;
 
-# Download the Source Code
-Invoke-WebRequest -Uri $archiveUri -OutFile $archivePath; 
-
-# Unzip Source Code
-New-Item -ItemType Directory -Path $archivePath -Force | Out-Null;
-Expand-Archive -Path $archivePath -DestinationPath $codePath -Force;
-
-New-Item -ItemType Directory -Path $siteRoot -Force | Out-Null;
-Copy-Item -Path "$codePath\src\*" -Destination $siteRoot -Recurse -Force;
-
-# Download nuget.exe
-mkdir -Path $nugetPath
-Invoke-WebRequest $sourceNugetExe -OutFile $targetNugetExe
-Set-Alias nuget $targetNugetExe -Scope Local -Verbose
-
-# install nuget packages
-nuget install Microsoft.Web.RedisSessionStateProvider -OutputDirectory $packagesPath
-#nuget install Microsoft.AspNet.SessionState.SessionStateModule -OutputDirectory $packagesPath -Framework net46
-#nuget install StackExchange.Redis -OutputDirectory $packagesPath -Framework net46
-
-# copy binaries to bin folder
-mkdir $binPath;
-Get-ChildItem -Path $packagesPath -Recurse | Where-Object { $_.FullName -match "\\lib\\net4.*\\.*\.dll"} | ForEach-Object {
-    Copy-Item -Path $_.FullName -Destination $binPath -Force;
+# Configure IIS Application Pool
+Import-Module WebAdministration;
+$poolExists = Get-WebAppPoolState -Name $applicationPool -ErrorAction SilentlyContinue;
+if ($null -eq $poolExists) {
+    # Create  Application Pool
+    New-WebAppPool -Name $applicationPool;
+    Set-ItemProperty $applicationPoolPath -Name managedPipelineMode -Value Integrated;
+    Set-ItemProperty $applicationPoolPath -Name managedRuntimeVersion -Value v4.0;
+    Set-ItemProperty $applicationPoolPath -Name enable32BitAppOnWin64 -Value $False;
+    Set-ItemProperty $applicationPoolPath -Name autoStart -Value $true;
 }
+else {
+    # Configure  Application Pool
+    $pool = Get-Item $applicationPoolPath; 
+    $pool.ManagedPipelineMode = 'Integrated'; 
+    $pool.ManagedRuntimeVersion = 'v4.0'; 
+    $pool.Enable32BitAppOnWin64 = $false; 
+    $pool.AutoStart = $true; 
+    $pool | Set-Item;
+}
+
+$siteExists = Get-Website -Name $siteName -ErrorAction SilentlyContinue;
+if ($null -eq $siteExists) {
+    # Change the port for the default web site
+    if ($siteName -ne 'Default Web Site') {
+        Set-ItemProperty "IIS:\Sites\Default Web Site" -Name bindings -Value @{protocol = "http"; bindingInformation = "*:88:" };
+    } 
+    # Create IIS Web Site
+    New-Website -Name $siteName -PhysicalPath $siteFolder -ApplicationPool $applicationPool;
+}
+else {
+    # Configure Core Web Site
+    Set-ItemProperty $sitePath -name PhysicalPath -value $siteFolder;
+}
+
+# Define the XML content as a multi-line string
+$xmlContent = @"
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appSettings>
+        <add key="SQLProvider" value="SQLOLEDB" />
+        <add key="SQLConnectionStringName" value="AzureSql" />
+    </appSettings>
+    <connectionStrings>
+        <add name="AzureSql" connectionString="Server=localhost,1433;Initial Catalog=Poc;Integrated Security=true;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" providerName="System.Data.SqlClient" />
+    </connectionStrings>
+    <system.web>
+        <compilation debug="true" />
+        <customErrors mode="Off" />
+        <sessionState mode="InProc" cookieless="false" timeout="20" />
+    </system.web>
+    <system.webServer>
+        <httpErrors errorMode="Detailed" />
+        <asp appAllowClientDebug="True" appAllowDebugging="True" scriptErrorSentToBrowser="True" enableParentPaths="True">
+            <comPlus appServiceFlags="EnableTracker" />
+            <limits maxRequestEntityAllowed="2147483647" />
+            <session allowSessionState="true" timeout="00:20:00" />
+        </asp>
+    </system.webServer>
+</configuration>
+"@
+
+# Specify the path to the web.config file
+$filePath = "$siteFolder\web.config"
+
+# Write the XML content to the web.config file
+Set-Content -Path $filePath -Value $xmlContent -Force
+
+# Set file permissions
+cmd /c icacls $siteFolder /grant:r Everyone:F /t;
