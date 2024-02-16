@@ -3,3 +3,16 @@
 <title><%=PageTitle %></title>
 <base href="/" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+<script lang="javascript">
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() { 
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+            console.log("Session values sent to asp.net!");
+    }
+    xmlHttp.open("GET", "/session/transfer.ashx", true); // true for asynchronous 
+    xmlHttp.send(null)    
+</script>

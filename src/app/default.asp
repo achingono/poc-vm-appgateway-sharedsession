@@ -5,37 +5,11 @@
 PageTitle="Welcome" & " : " & Environment.Item("COMPUTERNAME") 
 
 If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
-    'Session(Request.Form("key")) = Request.Form("value")
-    Dim data: data = "key=" & Server.URLEncode(Request.Form("key")) & "&value=" & Server.URLEncode(Request.Form("value"))
-    Set HttpClient = CreateObject("MSXML2.ServerXMLHTTP.3.0")
-    HttpClient.Open "POST", "http://localhost/session.ashx", False
-    HttpClient.setRequestHeader "Cookie", Request.ServerVariables("HTTP_COOKIE")
-    HttpClient.setRequestHeader "Content-Type", "application/x-www-form-urlencoded"
-    HttpClient.setRequestHeader "Content-Length", Len(data)
-    HttpClient.send data
-
-    If HttpClient.Status = 200 Then
-        Set XmlDom = HttpClient.ResponseXML
-        
-        For Each node in XmlDom.SelectNodes("//item")
-            key = node.GetAttribute("key")
-            value = node.GetAttribute("value")
-
-            ' Ensure key is a non-empty string
-            If Not IsEmpty(key) And Not IsNull(key) And Trim(key) <> "" Then
-                ' Explicitly convert value to string to avoid type mismatch issues
-                If Not IsNull(value) Then
-                    Session(CStr(key)) = CStr(value)
-                Else
-                    Session(CStr(key)) = ""
-                End If
-            End If
-        Next
-    End If
+    Session(Request.Form("key")) = Request.Form("value")
 End If
 %>
-    <!DOCTYPE html>
-    <html>
+<!DOCTYPE html>
+<html>
 
     <head>
         <!--#include virtual="/includes/header.inc.asp" -->
@@ -44,7 +18,10 @@ End If
     <body>
         <!--#include virtual="/includes/nav.inc.asp" -->
         <div class="container">
-            <h1 class="title">Session Test</h1>
+            <h1 class="title">Classic ASP Test</h1>
+            <p class="subtitle">
+            This page will read and write to the Classic ASP Session
+            </p>
             <div class="section">
                 <form class="form" action="" method="post">
                     <h2 class="subtitle">Add Session Item</h2>
@@ -100,11 +77,11 @@ End If
                         </tr>
                     </thead>
                     <tbody>
-                        <%
-                        For each key in Session.Contents
-                            Response.Write "<tr><td>" & key & "</td><td>" & Session(key) & "</td></tr>"
-                        Next
-                        %>
+                    <%
+                    For each key in Session.Contents
+                    %><tr><td><%= key %></td><td><%= Session(key) %></td></tr><%
+                    Next
+                    %>
                     </tbody>
                 </table>
             </div>
@@ -112,4 +89,4 @@ End If
     </body>
     <!--#include virtual="/includes/footer.inc.asp" -->
 
-    </html>
+</html>

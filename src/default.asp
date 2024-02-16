@@ -24,6 +24,7 @@ End If
                 <p class="subtitle">
                 How to share session between Classic ASP and ASP.Net
                 </p>
+                <p>Coming at you from <%= Environment.Item("COMPUTERNAME")%></p>
             </div>
         </section>
     </body>

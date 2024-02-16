@@ -1,6 +1,6 @@
 <%
 Set HttpClient = CreateObject("MSXML2.ServerXMLHTTP.3.0")
-HttpClient.Open "GET", "http://localhost/session.ashx", False
+HttpClient.Open "GET", "http://localhost/app/session.ashx", False
 HttpClient.setRequestHeader "Cookie", Request.ServerVariables("HTTP_COOKIE")
 HttpClient.Send
 
