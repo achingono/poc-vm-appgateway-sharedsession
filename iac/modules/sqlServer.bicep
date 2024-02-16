@@ -7,7 +7,7 @@ param adminPassword string
 param databaseSku string = 'Basic'
 param databaseTier string = 'Basic'
 param databaseCapacity int = 5
-param packageName string
+//param packageName string
 
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-11-01' existing = {
   name: 'vnet-${name}'
@@ -17,7 +17,7 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2022-11-01' existing 
   name: 'backend'
   parent: virtualNetwork
 }
-
+/*
 resource storageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' existing = {
   name: 'stg${replace(name,'-','')}'
 }
@@ -31,7 +31,7 @@ resource blobContainer 'Microsoft.Storage/storageAccounts/blobServices/container
   parent: blobService
   name: name
 }
-
+*/
 resource server 'Microsoft.Sql/servers@2022-11-01-preview' = {
   name: 'sql-${name}'
   location: location
@@ -59,7 +59,8 @@ resource virtualNetworkRule 'Microsoft.Sql/servers/virtualNetworkRules@2021-11-0
     virtualNetworkSubnetId: subnet.id
   }
 }
-
+// Can't get import to work
+/*
 resource firewallRule 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
   name: 'AllowAllWindowsAzureIps'
   parent: server
@@ -68,11 +69,13 @@ resource firewallRule 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' =
     endIpAddress: '0.0.0.0'
   }
 }
-
+*/
 // https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/template-tutorial-deploy-sql-extensions-bacpac
+/*
 resource extension 'Microsoft.Sql/servers/databases/extensions@2022-05-01-preview' = {
   name: 'Import'
   parent: database
+  dependsOn: [firewallRule]
   properties: {
     administratorLogin: adminUsername
     administratorLoginPassword: adminPassword
@@ -83,6 +86,6 @@ resource extension 'Microsoft.Sql/servers/databases/extensions@2022-05-01-previe
     storageUri: '${storageAccount.properties.primaryEndpoints.blob}/${blobContainer.name}/${packageName}'
   }
 }
-
+*/
 output serverName string = server.properties.fullyQualifiedDomainName
 output databaseName string = database.name

@@ -8,7 +8,7 @@ param uniqueSuffix string
 param adminUsername string
 @secure()
 param adminPassword string
-param databasePackageName string
+//param databasePackageName string
 param sourcePackageName string
 param instances array = [
   {
@@ -169,7 +169,7 @@ module sqlServer 'modules/sqlServer.bicep' = {
     location: resourceGroup.location
     adminPassword: adminPassword
     adminUsername: adminUsername
-    packageName: databasePackageName
+    //packageName: databasePackageName
   }
 }
 
