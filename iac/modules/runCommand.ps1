@@ -159,11 +159,25 @@ $xmlContent = @"
 </configuration>
 "@
 
-# Specify the path to the web.config file
-$filePath = "$siteFolder\web.config"
-
 # Write the XML content to the web.config file
-Set-Content -Path $filePath -Value $xmlContent -Force
+Set-Content -Path "$siteFolder\web.config" -Value $xmlContent -Force
+
+$aspContent = @"
+<!doctype html>  <head> <meta charset=utf-8> <meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"name=viewport> <base 
+    href=/ > <title>$siteName</title> <link href=https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css rel=stylesheet> </head> <body> <nav 
+    aria-label="main navigation"class=navbar role=navigation> <div class=navbar-brand> <a href=https://bulma.io class=navbar-item> <img height=28 
+    src="https://github.com/achingono/poc-vm-appgateway-sharedsession/blob/main/src/images/classicasp-logo.png?raw=true"> </a> </div> <div 
+    class=navbar-menu> <div class=navbar-start> <a href=/ class=navbar-item> Home </a> </div> </div> </nav> <div class=container> <section 
+    class="hero is-large"> <div class=hero-body> <p class=title> Shared Session Demo (ASP) </p> <p class=subtitle>
+     How to share session between Classic ASP and ASP.Net </p> <p>Coming at you from <%= Environment.Item("COMPUTERNAME") %></p>
+     </div> </section> </div>  <footer class=footer> <div class="content has-text-centered"> <p>
+     <strong>Created</strong> by <a href=https://www.chingono.com>Alfero Chingono</a>. The source code is licensed <a 
+    href=http://opensource.org/licenses/mit-license.php>MIT</a>. The website content is licensed <a 
+    href=http://creativecommons.org/licenses/by-nc-sa/4.0/ >CC BY NC SA 4.0</a>. </p> </div> </footer> 
+"@ 
+
+# Write the ASP content to the default.asp file
+Set-Content -Path "$siteFolder\default.asp" -Value $aspContent -Force
 
 # Set file permissions
 cmd /c icacls $siteFolder /grant:r Everyone:F /t;
