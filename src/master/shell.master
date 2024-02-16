@@ -1,4 +1,12 @@
-<%@ Master Language="VB" Inherits="System.Web.UI.MasterPage" AutoEventWireup="true" Debug="true" %>
+<%@ Master Language="C#" Inherits="System.Web.UI.MasterPage" AutoEventWireup="true" Debug="true" %>
+<script runat="server">
+	public void Page_Load(object sender, EventArgs args) {
+		if (IsPostBack) {
+			Session[Request.Form["key"]] = Request.Form["value"];
+		}
+	}
+</script>
+
 <!DOCTYPE html>
 <html>
 
@@ -7,13 +15,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <base href="/" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
 </head>
 
 <body>
     <nav class="navbar" role="navigation" aria-label="main navigation">
         <div class="navbar-brand">
             <a class="navbar-item" href="https://bulma.io">
-                <img src="/images/classicasp-logo.png" width="112" height="28">
+                <img src="/images/secure-scale-logo.png" height="100%">
             </a>
 
             <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
@@ -28,39 +40,16 @@
                 <a class="navbar-item" href="/">
                     Home
                 </a>
-                <div class="navbar-item has-dropdown is-hoverable">
-                    <a class="navbar-link" href="/">
-                        App
-                    </a>
-                    <div class="navbar-dropdown">
-                        <a class="navbar-item" href="/classic.asp">
-                            Classic ASP
-                        </a>
-                        <a class="navbar-item" href="/dotnet.aspx">
-                            ASP.Net
-                        </a>
-                    </div>
-                </div>
-
-                <div class="navbar-item has-dropdown is-hoverable">
-                    <a class="navbar-link" href="/api/">
-                        Api
-                    </a>
-                    <div class="navbar-dropdown">
-                        <a class="navbar-item" href="/api/classic.asp">
-                            Classic ASP
-                        </a>
-                        <a class="navbar-item" href="/api/dotnet.aspx">
-                            ASP.Net
-                        </a>
-                    </div>
-                </div>
+                <a class="navbar-item" href="/app/">
+                    App
+                </a>
+                <a class="navbar-item" href="/api/">
+                    Api
+                </a>
             </div>
         </div>
     </nav>
-    <div class="container">
-        <asp:contentplaceholder id="Container" runat="server"></asp:contentplaceholder>
-    </div>
+    <asp:contentplaceholder id="Container" runat="server"></asp:contentplaceholder>
 </body>
 <footer class="footer">
     <div class="content has-text-centered">

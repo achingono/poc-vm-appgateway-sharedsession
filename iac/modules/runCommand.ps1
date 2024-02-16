@@ -166,7 +166,7 @@ $aspContent = @"
 <!doctype html>  <head> <meta charset=utf-8> <meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"name=viewport> <base 
     href=/ > <title>$siteName</title> <link href=https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css rel=stylesheet> </head> <body> <nav 
     aria-label="main navigation"class=navbar role=navigation> <div class=navbar-brand> <a href=https://bulma.io class=navbar-item> <img height=28 
-    src="https://github.com/achingono/poc-vm-appgateway-sharedsession/blob/main/src/images/classicasp-logo.png?raw=true"> </a> </div> <div 
+    src="https://github.com/achingono/poc-vm-appgateway-sharedsession/blob/main/src/images/secure-scale-logo.png?raw=true"> </a> </div> <div 
     class=navbar-menu> <div class=navbar-start> <a href=/ class=navbar-item> Home </a> </div> </div> </nav> <div class=container> <section 
     class="hero is-large"> <div class=hero-body> <p class=title> Shared Session Demo (ASP) </p> <p class=subtitle>
      How to share session between Classic ASP and ASP.Net </p> <p>Coming at you from <%= Environment.Item("COMPUTERNAME") %></p>
