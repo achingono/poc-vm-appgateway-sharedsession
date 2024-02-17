@@ -36,12 +36,7 @@ if(!(Test-Path $xdtPath)){
 # Transform web.config
 # https://gist.github.com/sayedihashimi/f1fdc4bfba74d398ec5b
 # slowcheetah.xdt.exe <source file> <transform> <dest file>
-$cmdArgs = @("$siteCodeFolder\web.config",
-             "$siteCodeFolder\web.release.config",
-             "$siteCodeFolder\web.config");
-
-'Calling slowcheetah.xdt.exe with the args: [{0} {1}]' -f (GetTransformXmlExe), ($cmdArgs -join ' ') | Write-Verbose
-&($transformerPath -toolsDir $toolsDir) $cmdArgs;
+& $transformerPath "$siteCodeFolder\web.config" "$siteCodeFolder\web.release.config" "$siteCodeFolder\web.config";
 
 # create deployment package 
 # https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/dd569054(v=ws.10)
