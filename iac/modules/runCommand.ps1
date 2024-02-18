@@ -132,6 +132,9 @@ else {
     Set-ItemProperty $sitePath -name PhysicalPath -value $siteFolder;
 }
 
+# Create web.config file if it does not exist
+if (-not (Test-Path "$siteFolder\web.config")) {
+
 # Define the XML content as a multi-line string
 $xmlContent = @"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -161,11 +164,16 @@ $xmlContent = @"
 
 # Write the XML content to the web.config file
 Set-Content -Path "$siteFolder\web.config" -Value $xmlContent -Force
+}
 
+# Create default.asp file if it does not exist
+if (-not (Test-Path "$siteFolder\default.asp")) {
+
+# Define the HTML content as a multi-line string
 $aspContent = @"
 <!doctype html>  <head> <meta charset=utf-8> <meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"name=viewport> <base 
     href=/ > <title>$siteName</title> <link href=https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css rel=stylesheet> </head> <body> <nav 
-    aria-label="main navigation"class=navbar role=navigation> <div class=navbar-brand> <a href=https://bulma.io class=navbar-item> <img height=28 
+    aria-label="main navigation"class=navbar role=navigation> <div class=navbar-brand> <a href=/ class=navbar-item> <img height=28 
     src="https://github.com/achingono/poc-vm-appgateway-sharedsession/blob/main/src/images/secure-scale-logo.png?raw=true"> </a> </div> <div 
     class=navbar-menu> <div class=navbar-start> <a href=/ class=navbar-item> Home </a> </div> </div> </nav> <div class=container> <section 
     class="hero is-large"> <div class=hero-body> <p class=title> Shared Session Demo (ASP) </p> <p class=subtitle>
@@ -178,6 +186,7 @@ $aspContent = @"
 
 # Write the ASP content to the default.asp file
 Set-Content -Path "$siteFolder\default.asp" -Value $aspContent -Force
+}
 
 # Set file permissions
 cmd /c icacls $siteFolder /grant:r Everyone:F /t;

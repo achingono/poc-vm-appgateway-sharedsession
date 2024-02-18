@@ -9,7 +9,7 @@ param adminUsername string
 @secure()
 param adminPassword string
 //param databasePackageName string
-param sourcePackageName string
+//param sourcePackageName string
 param instances array = [
   {
     name: 'app'
@@ -153,7 +153,7 @@ module command 'modules/runCommand.bicep' = {
     name: resourceName
     location: location
     instances: instances
-    packageName: sourcePackageName
+    //packageName: sourcePackageName
   }
 }
 

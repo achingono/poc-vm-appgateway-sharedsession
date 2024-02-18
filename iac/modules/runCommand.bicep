@@ -1,7 +1,7 @@
 param name string
 param location string
 param instances array
-param packageName string
+//param packageName string
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' existing = {
   name: 'stg${replace(name,'-','')}'
@@ -31,6 +31,14 @@ resource deploymentscript 'Microsoft.Compute/virtualMachines/runCommands@2022-03
     }
     parameters: [
       {
+        name: 'siteName'
+        value: '${instance.name}-${name}'
+      }
+      {
+        name: 'applicationPool'
+        value: replace('${instance.name}-${name}','-','')
+      }
+      /*{
         name: 'storageAccountName'
         value: storageAccount.name
       }
@@ -45,7 +53,7 @@ resource deploymentscript 'Microsoft.Compute/virtualMachines/runCommands@2022-03
       {
         name: 'storageKey'
         value: storageAccount.listKeys().keys[0].value
-      }
+      }*/
     ]
     outputBlobUri: '${storageAccount.properties.primaryEndpoints.blob}${blobContainer.name}/runCommand-${instance.name}.log'
     errorBlobUri: '${storageAccount.properties.primaryEndpoints.blob}${blobContainer.name}/runCommand-${instance.name}-error.log'
