@@ -41,21 +41,23 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
       - name: Deploy
-        run: |
-          # provision infrastructure
-          az deployment sub create \
-              --name ${{ vars.AZURE_NAME }} \
-              --location ${{ vars.AZURE_LOCATION }} \
-              --template-file ./iac/main.bicep \
-              --parameters name=${{ vars.AZURE_NAME }} \
-              --parameters location=${{ vars.AZURE_LOCATION }} \
-              --parameters uniqueSuffix=${{ vars.AZURE_SUFFIX }} \
-              --parameters adminUsername=${{ secrets.AZURE_USERNAME }} \
-              --parameters adminPassword=${{ secrets.AZURE_PASSWORD }} \
-              --parameters sourcePackageName=source.zip \
-              --parameters databasePackageName=database.bacpac
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # provision infrastructure
+            az deployment sub create \
+                --name ${{ vars.AZURE_NAME }} \
+                --location ${{ vars.AZURE_LOCATION }} \
+                --template-file ./iac/main.bicep \
+                --parameters name=${{ vars.AZURE_NAME }} \
+                --parameters location=${{ vars.AZURE_LOCATION }} \
+                --parameters uniqueSuffix=${{ vars.AZURE_SUFFIX }} \
+                --parameters adminUsername=${{ secrets.AZURE_USERNAME }} \
+                --parameters adminPassword=${{ secrets.AZURE_PASSWORD }} \
+                --parameters sourcePackageName=source.zip \
+                --parameters databasePackageName=database.bacpac
         
-  upload-database:
+  upload-bacpac:
     needs: [environment, provision]
     name: Upload Database Package
     runs-on: ubuntu-latest
@@ -68,28 +70,29 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
       - name: Upload File
-        id: upload
-        run: |
-          # check if the bacpac file exists in storage container
-          BLOB_EXISTS=$(az storage blob exists --container-name $STORAGE_CONTAINER \
-                          --name database.bacpac \
-                          --account-name $STORAGE_ACCOUNT)
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # check if the bacpac file exists in storage container
+            BLOB_EXISTS=$(az storage blob exists --container-name $STORAGE_CONTAINER \
+                            --name database.bacpac \
+                            --account-name $STORAGE_ACCOUNT)
 
-          if [[ $BLOB_EXISTS == *"false"* ]]; then                
-            # Copy the bacpac file to the storage account
-            az storage azcopy blob upload --container $STORAGE_CONTAINER \
-                            --account-name $STORAGE_ACCOUNT \
-                            --resource-group $RESOURCE_GROUP \
-                            --source ./pkg/database.bacpac \
-                            --destination database.bacpac
-          fi
+            if [[ $BLOB_EXISTS == *"false"* ]]; then                
+              # Copy the bacpac file to the storage account
+              az storage azcopy blob upload --container $STORAGE_CONTAINER \
+                              --account-name $STORAGE_ACCOUNT \
+                              --resource-group $RESOURCE_GROUP \
+                              --source ./pkg/database.bacpac \
+                              --destination database.bacpac
+            fi
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
           STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
           STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
 
   import-database:
-    needs: [environment, upload-database]
+    needs: [environment, upload-bacpac]
     name: Import Database
     runs-on: ubuntu-latest
     environment: 
@@ -99,27 +102,65 @@ jobs:
       - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Check Database
+        id: check
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            set -eu
+
+            # Get Agent public IP
+            AGENT_IP=$(curl -s https://api.ipify.org/)
+
+            # Allow runner to access the sql server
+            az sql server firewall-rule create --name AllowGitHubAgent \
+                --resource-group $RESOURCE_GROUP --server $SERVER_NAME \
+                --start-ip-address $AGENT_IP --end-ip-address $AGENT_IP
+            
+            # Wait for firewall rule to take effect
+            sleep 30
+
+            # Check if the database contains any tables
+            QUERY_RESULT=$(sqlcmd -S tcp:$SERVER_NAME.database.windows.net,1433 -d $DATABASE_NAME -U ${{ secrets.AZURE_USERNAME }} -P ${{ secrets.AZURE_PASSWORD }} -N -l 30 -Q "SELECT COUNT(*) FROM sys.tables")
+
+            # Return boolean output
+            echo "::set-output name=empty::$(if [[ $QUERY_RESULT == *"0"* ]]; then echo "true"; else echo "false"; fi)"
+
+            # Delete firewall rule
+            az sql server firewall-rule delete --name AllowGitHubAgent \
+                --resource-group $RESOURCE_GROUP --server $SERVER_NAME
+
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
+          SERVER_NAME: sql-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+          DATABASE_NAME: db-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+
       - name: Import Database
-        run: |
-          # Allow Azure services to access the sql server
-          az sql server firewall-rule create --name AllowAllWindowsAzureIps \
-              --resource-group $RESOURCE_GROUP --server $SERVER_NAME \
-              --start-ip-address 0.0.0.0 --end-ip-address 0.0.0.0
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            set -eu
 
-          # import the bacpac file
-          az sql db import --name $DATABASE_NAME \
-              --server $SERVER_NAME --resource-group $RESOURCE_GROUP \
-              --auth-type SQL --admin-user ${{ secrets.AZURE_USERNAME }} --admin-password ${{ secrets.AZURE_PASSWORD }} \
-              --storage-uri https://$STORAGE_ACCOUNT.blob.core.windows.net/$STORAGE_CONTAINER/database.bacpac \
-              --storage-key $(az storage account keys list --account-name $STORAGE_ACCOUNT --resource-group $RESOURCE_GROUP --query "[0].value" -o tsv) \
-              --storage-key-type StorageAccessKey
+            # Allow Azure services to access the sql server
+            az sql server firewall-rule create --name AllowAllWindowsAzureIps \
+                --resource-group $RESOURCE_GROUP --server $SERVER_NAME \
+                --start-ip-address 0.0.0.0 --end-ip-address 0.0.0.0
 
-          # delete the firewall rule
-          az sql server firewall-rule delete --name AllowAllWindowsAzureIps \
-              --resource-group $RESOURCE_GROUP --server $SERVER_NAME
+            # import the bacpac file
+            az sql db import --name $DATABASE_NAME \
+                --server $SERVER_NAME --resource-group $RESOURCE_GROUP \
+                --auth-type SQL --admin-user ${{ secrets.AZURE_USERNAME }} --admin-password ${{ secrets.AZURE_PASSWORD }} \
+                --storage-uri https://$STORAGE_ACCOUNT.blob.core.windows.net/$STORAGE_CONTAINER/database.bacpac \
+                --storage-key $(az storage account keys list --account-name $STORAGE_ACCOUNT --resource-group $RESOURCE_GROUP --query "[0].value" -o tsv) \
+                --storage-key-type StorageAccessKey
+
+            # delete the firewall rule
+            az sql server firewall-rule delete --name AllowAllWindowsAzureIps \
+                --resource-group $RESOURCE_GROUP --server $SERVER_NAME
         env:
           RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
           STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
           STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
           DATABASE_NAME: db-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
           SERVER_NAME: sql-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+        if: ${{ steps.check.outputs.empty == 'true' }}
