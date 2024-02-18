@@ -1,6 +1,6 @@
 # This workflow deploys the source 
 
-name: Provision Infrastructure
+name: Deploy Source
 
 on:
   workflow_dispatch:
