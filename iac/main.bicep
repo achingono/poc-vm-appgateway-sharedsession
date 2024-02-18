@@ -173,6 +173,18 @@ module sqlServer 'modules/sqlServer.bicep' = {
   }
 }
 
+module redis 'modules/redis.bicep' = {
+  name: '${deployment().name}--redis'
+  scope: resourceGroup
+  dependsOn: [
+    virtualNetwork
+  ]
+  params: {
+    name: resourceName
+    location: resourceGroup.location
+  }
+}
+
 output resourceGroupName string = resourceGroup.name
 output publicIPAddress string = publicIPAddress.outputs.ipAddress
 output fqdn string = publicIPAddress.outputs.fqdn

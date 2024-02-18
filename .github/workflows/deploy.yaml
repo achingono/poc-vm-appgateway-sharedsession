@@ -1,0 +1,180 @@
+# This workflow deploys the source 
+
+name: Provision Infrastructure
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - dev
+      - develop
+      - 'features/*'
+    paths:
+      - 'src/**'
+
+jobs:
+
+  environment:
+    name: Determine Environment Name
+    uses: ./.github/workflows/environment.yaml     
+
+  validate:
+    needs: [environment]
+    name: Validate Environment Configuration
+    uses: ./.github/workflows/validate.yaml
+    with:
+      environment: ${{ needs.environment.outputs.name }}
+    secrets: 
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+
+  package:
+    needs: [environment, validate]
+    name: Package Source
+    runs-on: windows-latest
+    environment: 
+      name: ${{ needs.environment.outputs.name }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Package
+        run: |
+          # Package the source code
+          ./package.ps1          
+
+  upload:
+    needs: [environment, package]
+    name: Release
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ needs.environment.outputs.name }}
+    outputs:
+      PACKAGE_NAME: ${{ steps.upload.outputs.PACKAGE_NAME }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Upload
+        id: upload
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Generate the package name
+            PACKAGE_NAME=source-${{ github.run_number }}.zip
+
+            # Copy the source code to the storage account
+            az storage azcopy blob upload --container $STORAGE_CONTAINER \
+                    --account-name $STORAGE_ACCOUNT --source ./pkg/source.zip \
+                    --destination $PACKAGE_NAME
+
+            # Return the package name
+            echo "::set-output name=PACKAGE_NAME::$PACKAGE_NAME"
+
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
+          STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
+          STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+
+  parametize:
+    needs: [environment, validate]
+    name: Parametize
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ needs.environment.outputs.name }}
+    outputs:
+      SQL_CONNECTION_STRING: ${{ steps.sql.outputs.CONNECTION_STRING }}
+      REDIS_HOSTNAME: ${{ steps.redis.outputs.HOSTNAME }}
+      REDIS_PORT: ${{ steps.redis.outputs.PORT }}
+      REDIS_ENABLE_NON_SSL_PORT: ${{ steps.redis.outputs.ENABLE_NON_SSL_PORT }}
+      REDIS_SSL_PORT: ${{ steps.redis.outputs.SSL_PORT }}
+      REDIS_ACCESS_KEY: ${{ steps.redis.outputs.ACCESS_KEY }}
+
+    steps:
+      - uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Get Sql Connection String
+        id: sql
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Get Azure Sql Connection String
+            SQL_CONNECTION_STRING=$(az sql db show-connection-string --client ado.net --name $DATABASE_NAME --server $SERVER_NAME --auth-type SqlPassword)
+
+            # Replace username and password in the connection string
+            CONNECTION_STRING=$(echo $CONNECTION_STRING | sed -e "s/<username>/${{ secrets.AZURE_USERNAME }}/g" -e "s/<password>/${{ secrets.AZURE_PASSWORD }}/g")
+            
+            # Return output
+            echo "::set-output name=CONNECTION_STRING::$CONNECTION_STRING"
+        env:
+            DATABASE_NAME: db-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+            SERVER_NAME: sql-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+
+      - name: Get Redis Connection String
+        id: redis
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Get Azure Redis Connection String
+            PARAMS=$(az redis show --name $SERVER_NAME --resource-group $RESOURCE_NAME --query [hostName,port,enableNonSslPort,sslPort] -o tsv)
+
+            # Get the Azure Redis Access Key
+            ACCESS_KEY=$(az redis list-keys --name $SERVER_NAME --resource-group $RESOURCE_NAME --query primaryKey -o tsv)
+
+            # Return output
+            echo "::set-output name=HOSTNAME::$(echo $PARAMS | awk '{print $1}')"
+            echo "::set-output name=PORT::$(echo $PARAMS | awk '{print $2}')"
+            echo "::set-output name=ENABLE_NON_SSL_PORT::$(echo $PARAMS | awk '{print $3}')"
+            echo "::set-output name=SSL_PORT::$(echo $PARAMS | awk '{print $4}')"
+            echo "::set-output name=ACCESS_KEY::$ACCESS_KEY"
+          
+        env:
+            SERVER_NAME: redis-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+            RESOURCE_NAME: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
+
+  deploy:
+    needs: [environment, upload, parametize]
+    name: Provision Infrastructure
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ needs.environment.outputs.name }}
+    strategy:
+      matrix:
+        instance: ['app', 'api']
+    steps:
+      - uses: actions/checkout@v2
+      - uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Get Parameters
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Get Azure Sql Connection String
+            az deployment group create --name ${{ matrix.instance }} --resource-group $RESOURCE_GROUP \
+                    --template-file ./deploy.json --parameters ./deploy.parameters.json
+
+        env:
+            RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
+            STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
+            STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}    
+
+      - name: Deploy
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Run command on the virtual machine
+            az vm run-command invoke --command-id RunPowerShellScript \
+                    --name $VIRUTAL_MACHINE --resource-group $RESOURCE_GROUP \
+                    --scripts @./deploy.ps1 \
+                    --parameters "siteName=$SITE_NAME" "packageName=$PACKAGE_NAME" "storageAccount=$STORAGE_ACCOUNT" "storageContainer=$STORAGE_CONTAINER" "sqlConnectionString=$SQL_CONNECTION_STRING" "redisHost=$REDIS_HOSTNAME" "redisKey=$REDIS_ACCESS_KEY" "redisPort=$REDIS_PORT
+        
+        env:
+            VIRUTAL_MACHINE: vm-${{ matrix.instance }}-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+            RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
+            SITE_NAME: ${{ matrix.instance }}-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+            PACKAGE_NAME: ${{ needs.upload.outputs.PACKAGE_NAME }}
+            STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
+            STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}   
+            SQL_CONNECTION_STRING: ${{ needs.parametize.outputs.SQL_CONNECTION_STRING }} 
+            REDIS_HOSTNAME: ${{ needs.parametize.outputs.REDIS_HOSTNAME }}
+            REDIS_PORT: if [[ "${{ needs.parametize.outputs.REDIS_ENABLE_NON_SSL_PORT}}" == "true" ]]; then ${{ needs.parametize.outputs.REDIS_PORT }}; else ${{ needs.parametize.outputs.REDIS_SSL_PORT }}; fi
+            REDIS_ACCESS_KEY: ${{ needs.parametize.outputs.REDIS_ACCESS_KEY }}
+            
