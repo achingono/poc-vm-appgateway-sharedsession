@@ -53,9 +53,7 @@ jobs:
                 --parameters location=${{ vars.AZURE_LOCATION }} \
                 --parameters uniqueSuffix=${{ vars.AZURE_SUFFIX }} \
                 --parameters adminUsername=${{ secrets.AZURE_USERNAME }} \
-                --parameters adminPassword=${{ secrets.AZURE_PASSWORD }} \
-                --parameters sourcePackageName=source.zip \
-                --parameters databasePackageName=database.bacpac
+                --parameters adminPassword=${{ secrets.AZURE_PASSWORD }}
         
   upload-bacpac:
     needs: [environment, provision]
