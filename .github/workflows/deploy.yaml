@@ -37,9 +37,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Package
-        run: |
-          # Package the source code
-          ./package.ps1          
+        uses: azure/powershell@v1
+        with: 
+          inlineScript: ./package.ps1
+          azPSVersion: "latest"          
 
   upload:
     needs: [environment, package]
@@ -113,10 +114,10 @@ jobs:
         with:
           inlineScript: |
             # Get Azure Redis Connection String
-            PARAMS=$(az redis show --name $SERVER_NAME --resource-group $RESOURCE_NAME --query [hostName,port,enableNonSslPort,sslPort] -o tsv)
+            PARAMS=$(az redis show --name $SERVER_NAME --resource-group $RESOURCE_GROUP --query [hostName,port,enableNonSslPort,sslPort] -o tsv)
 
             # Get the Azure Redis Access Key
-            ACCESS_KEY=$(az redis list-keys --name $SERVER_NAME --resource-group $RESOURCE_NAME --query primaryKey -o tsv)
+            ACCESS_KEY=$(az redis list-keys --name $SERVER_NAME --resource-group $RESOURCE_GROUP --query primaryKey -o tsv)
 
             # Return output
             echo "::set-output name=HOSTNAME::$(echo $PARAMS | awk '{print $1}')"
@@ -127,7 +128,7 @@ jobs:
           
         env:
             SERVER_NAME: redis-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
-            RESOURCE_NAME: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
+            RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
 
   deploy:
     needs: [environment, upload, parametize]
