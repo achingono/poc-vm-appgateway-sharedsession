@@ -107,8 +107,8 @@ jobs:
       - name: Get Runner IP
         id: runner-ip
         run: echo "::set-output name=ip::$(curl -s https://api.ipify.org/)"
-      - name: Check Database
-        id: check
+      - name: Create Firewall Rule
+        id: create-rule
         uses: azure/CLI@v1
         with:
           inlineScript: |
@@ -122,20 +122,47 @@ jobs:
             # Wait for firewall rule to take effect
             sleep 30
 
+        env:
+          RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
+          SERVER_NAME: sql-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+
+      - name: Install SQLCMD
+        uses: shaybentk/mssqlsuite@v0.0.1
+        with:
+          install: sqlclient
+
+      - name: Check Database
+        id: check
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            set -eu
+
             # Check if the database contains any tables
             QUERY_RESULT=$(sqlcmd -S tcp:$SERVER_NAME.database.windows.net,1433 -d $DATABASE_NAME -U ${{ secrets.AZURE_USERNAME }} -P ${{ secrets.AZURE_PASSWORD }} -N -l 30 -Q "SELECT COUNT(*) FROM sys.tables")
-
-            # Delete firewall rule
-            az sql server firewall-rule delete --name AllowGitHubAgent \
-                --resource-group $RESOURCE_GROUP --server $SERVER_NAME
 
             # Return boolean output
             echo "::set-output name=empty::$(if [[ $QUERY_RESULT == *"0"* ]]; then echo "true"; else echo "false"; fi)"
 
         env:
-          RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
           SERVER_NAME: sql-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
           DATABASE_NAME: db-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+
+      - name: Delete Firewall Rule
+        id: delete-rule
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            set -eu
+
+            # Delete firewall rule
+            az sql server firewall-rule delete --name AllowGitHubAgent \
+                --resource-group $RESOURCE_GROUP --server $SERVER_NAME
+
+        env:
+          RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
+          SERVER_NAME: sql-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+        if: always()
 
       - name: Import Database
         uses: azure/CLI@v1
