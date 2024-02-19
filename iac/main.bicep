@@ -28,7 +28,7 @@ var resourceName = '${name}-${uniqueSuffix}'
 targetScope = 'subscription'
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2020-06-01' = {
-  name: 'rg-${name}-${location}-${uniqueSuffix}'
+  name: 'rg-${resourceName}-${location}'
   location: location
   tags: {
     environment: name

@@ -71,6 +71,11 @@ jobs:
         uses: azure/CLI@v1
         with:
           inlineScript: |
+            set -eu
+
+            # remove invalid characters from storage account
+            STORAGE_ACCOUNT=$(echo $STORAGE_ACCOUNT | tr -d -c 'a-z0-9')
+
             # check if the bacpac file exists in storage container
             BLOB_EXISTS=$(az storage blob exists --container-name $STORAGE_CONTAINER \
                             --name database.bacpac \
@@ -80,12 +85,11 @@ jobs:
               # Copy the bacpac file to the storage account
               az storage azcopy blob upload --container $STORAGE_CONTAINER \
                               --account-name $STORAGE_ACCOUNT \
-                              --resource-group $RESOURCE_GROUP \
                               --source ./pkg/database.bacpac \
                               --destination database.bacpac
             fi
         env:
-          RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
+          RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
           STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
           STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
 
@@ -100,44 +104,74 @@ jobs:
       - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - name: Check Database
-        id: check
+      - name: Get Runner IP
+        id: runner-ip
+        run: echo "::set-output name=ip::$(curl -s https://api.ipify.org/)"
+      - name: Create Firewall Rule
+        id: create-rule
         uses: azure/CLI@v1
         with:
           inlineScript: |
             set -eu
 
-            # Get Agent public IP
-            AGENT_IP=$(curl -s https://api.ipify.org/)
-
             # Allow runner to access the sql server
             az sql server firewall-rule create --name AllowGitHubAgent \
                 --resource-group $RESOURCE_GROUP --server $SERVER_NAME \
-                --start-ip-address $AGENT_IP --end-ip-address $AGENT_IP
+                --start-ip-address ${{ steps.runner-ip.outputs.ip }} --end-ip-address ${{ steps.runner-ip.outputs.ip }}
             
             # Wait for firewall rule to take effect
             sleep 30
 
-            # Check if the database contains any tables
-            QUERY_RESULT=$(sqlcmd -S tcp:$SERVER_NAME.database.windows.net,1433 -d $DATABASE_NAME -U ${{ secrets.AZURE_USERNAME }} -P ${{ secrets.AZURE_PASSWORD }} -N -l 30 -Q "SELECT COUNT(*) FROM sys.tables")
+        env:
+          RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
+          SERVER_NAME: sql-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
 
-            # Return boolean output
-            echo "::set-output name=empty::$(if [[ $QUERY_RESULT == *"0"* ]]; then echo "true"; else echo "false"; fi)"
+      - name: Check Database
+        id: check
+        run: |
+          # Download SQLCMD from https://github.com/microsoft/go-sqlcmd/releases/latest
+          curl -L https://github.com/microsoft/go-sqlcmd/releases/download/v1.5.0/sqlcmd-v1.5.0-linux-x64.tar.bz2 -o sqlcmd-v1.5.0-linux-x64.tar.bz2
+
+          # Extract the tarball
+          tar -xvf sqlcmd-v1.5.0-linux-x64.tar.bz2
+
+          # Make the sqlcmd binary executable
+          chmod +x sqlcmd
+
+          # Check if the database contains any tables
+          QUERY_RESULT=$(./sqlcmd -S tcp:$SERVER_NAME.database.windows.net,1433 -d $DATABASE_NAME -U ${{ secrets.AZURE_USERNAME }} -P ${{ secrets.AZURE_PASSWORD }} -C -l 30 -Q "SELECT COUNT(*) FROM sys.tables")
+
+          # Return boolean output
+          echo "::set-output name=empty::$(if [[ $QUERY_RESULT =~ [^\d]0[^\d] ]]; then echo "true"; else echo "false"; fi)"
+
+        env:
+          SERVER_NAME: sql-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+          DATABASE_NAME: db-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+
+      - name: Delete Firewall Rule
+        id: delete-rule
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            set -eu
 
             # Delete firewall rule
             az sql server firewall-rule delete --name AllowGitHubAgent \
                 --resource-group $RESOURCE_GROUP --server $SERVER_NAME
 
         env:
-          RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
+          RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
           SERVER_NAME: sql-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
-          DATABASE_NAME: db-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
+        if: always()
 
       - name: Import Database
         uses: azure/CLI@v1
         with:
           inlineScript: |
             set -eu
+
+            # remove invalid characters from storage account
+            STORAGE_ACCOUNT=$(echo $STORAGE_ACCOUNT | tr -d -c 'a-z0-9')
 
             # Allow Azure services to access the sql server
             az sql server firewall-rule create --name AllowAllWindowsAzureIps \
@@ -156,7 +190,7 @@ jobs:
             az sql server firewall-rule delete --name AllowAllWindowsAzureIps \
                 --resource-group $RESOURCE_GROUP --server $SERVER_NAME
         env:
-          RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
+          RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
           STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
           STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
           DATABASE_NAME: db-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}

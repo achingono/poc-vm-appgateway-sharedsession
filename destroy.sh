@@ -18,7 +18,7 @@ elif [[ $CODE =~ [^a-zA-Z0-9] ]]; then
  exit 1;
 fi
 
-GROUP=rg-${NAME}-${LOCATION}-${CODE}
+GROUP=rg-${NAME}-${CODE}-${LOCATION}
 SECONDS=0
 
 read -p "WARNING: This will delete all Azure resources in resource group $GROUP. Are you sure? (Y/N): " confirm && [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]] || exit 1
