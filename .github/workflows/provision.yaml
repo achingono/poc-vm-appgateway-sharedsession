@@ -46,6 +46,7 @@ jobs:
           inlineScript: |
             # provision infrastructure
             az deployment sub create \
+                --mode Incremental \
                 --name ${{ vars.AZURE_NAME }} \
                 --location ${{ vars.AZURE_LOCATION }} \
                 --template-file ./iac/main.bicep \
