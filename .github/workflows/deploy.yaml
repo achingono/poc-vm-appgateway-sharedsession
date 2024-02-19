@@ -44,7 +44,7 @@ jobs:
       - uses: actions/upload-artifact@master
         with:
           name: package
-          path: ./pkg/source.zip
+          path: ./pkg
 
   upload:
     needs: [environment, package]
@@ -58,7 +58,7 @@ jobs:
       - uses: actions/download-artifact@master
         with:
           name: package
-          path: ./pkg/source.zip
+          path: ./pkg
       - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
