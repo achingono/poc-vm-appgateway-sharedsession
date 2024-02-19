@@ -39,7 +39,7 @@ resource neworkLink 'Microsoft.Cache/redis/virtualNetworkLinks@2020-12-01' = {
 }
 
 resource firewallRule 'Microsoft.Cache/redis/firewallRules@2020-12-01' = {
-  name: 'rule-redis-${name}'
+  name: replace('rule-redis-${name}','-','')
   parent: redis
   properties: {
     startIP: '10.0.3.0'
