@@ -126,16 +126,20 @@ jobs:
           RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
           SERVER_NAME: sql-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
 
-      - name: Install SQLCMD
-        uses: shaybentk/mssqlsuite@v0.0.4
-        with:
-          install: sqlclient
-
       - name: Check Database
         id: check
         run: |
+          # Download SQLCMD from https://github.com/microsoft/go-sqlcmd/releases/latest
+          curl -L https://github.com/microsoft/go-sqlcmd/releases/download/v1.5.0/sqlcmd-v1.5.0-linux-x64.tar.bz2 -o sqlcmd-v1.5.0-linux-x64.tar.bz2
+
+          # Extract the tarball
+          tar -xvf sqlcmd-v1.5.0-linux-x64.tar.bz2
+
+          # Make the sqlcmd binary executable
+          chmod +x sqlcmd
+
           # Check if the database contains any tables
-          QUERY_RESULT=$(sqlcmd -S tcp:$SERVER_NAME.database.windows.net,1433 -d $DATABASE_NAME -U ${{ secrets.AZURE_USERNAME }} -P ${{ secrets.AZURE_PASSWORD }} -N -l 30 -Q "SELECT COUNT(*) FROM sys.tables")
+          QUERY_RESULT=$(./sqlcmd -S tcp:$SERVER_NAME.database.windows.net,1433 -d $DATABASE_NAME -U ${{ secrets.AZURE_USERNAME }} -P ${{ secrets.AZURE_PASSWORD }} -N -l 30 -Q "SELECT COUNT(*) FROM sys.tables")
 
           # Return boolean output
           echo "::set-output name=empty::$(if [[ $QUERY_RESULT == *"0"* ]]; then echo "true"; else echo "false"; fi)"
