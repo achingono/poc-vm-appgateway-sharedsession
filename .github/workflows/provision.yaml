@@ -86,8 +86,8 @@ jobs:
                               --destination database.bacpac
             fi
         env:
-          RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
-          STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
+          RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
+          STORAGE_ACCOUNT: $(echo "stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}" | tr -d -c 'a-z0-9')
           STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
 
   import-database:
@@ -130,7 +130,7 @@ jobs:
                 --resource-group $RESOURCE_GROUP --server $SERVER_NAME
 
         env:
-          RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
+          RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
           SERVER_NAME: sql-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
           DATABASE_NAME: db-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
 
@@ -157,8 +157,8 @@ jobs:
             az sql server firewall-rule delete --name AllowAllWindowsAzureIps \
                 --resource-group $RESOURCE_GROUP --server $SERVER_NAME
         env:
-          RESOURCE_GROUP: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_LOCATION }}-${{ vars.AZURE_SUFFIX }}
-          STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
+          RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
+          STORAGE_ACCOUNT: $(echo "stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}" | tr -d -c 'a-z0-9')
           STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
           DATABASE_NAME: db-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
           SERVER_NAME: sql-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}

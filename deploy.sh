@@ -24,27 +24,25 @@ echo "Start time: $(date)"
 # configure az cli dynamic install
 az config set extension.use_dynamic_install=yes_without_prompt;
 
-# create resource group
-RESOURCE_GROUP="rg-${NAME}-${LOCATION}-${CODE}"
-az group create --name $RESOURCE_GROUP --location $LOCATION
-
-STORAGE_ACCOUNT="stg${NAME}${CODE}"
+# define resource variables
+RESOURCE_GROUP="rg-${NAME}-${CODE}-${LOCATION}"
 STORAGE_CONTAINER="${NAME}-${CODE}"
+STORAGE_ACCOUNT="stg${NAME}${CODE}"
 # remove invalid characters from the storage account name
 STORAGE_ACCOUNT=$(echo $STORAGE_ACCOUNT | tr -d -c 'a-z0-9')
-# create a storage account
-az storage account create --name $STORAGE_ACCOUNT --resource-group $RESOURCE_GROUP --location $LOCATION --sku Standard_LRS --allow-blob-public-access true
 
-# wait for the storage account to be created
-while [[ $(az storage account show --name $STORAGE_ACCOUNT \
-                --resource-group $RESOURCE_GROUP \
-                --query "provisioningState" \
-                --output tsv) != "Succeeded" ]]; do
-sleep 5
-done
-
-# create a container
-az storage container create --name $STORAGE_CONTAINER --account-name $STORAGE_ACCOUNT --public-access blob
+# provision infrastructure
+az deployment sub create \
+    --name $NAME \
+    --location $LOCATION \
+    --template-file ./iac/main.bicep \
+    --parameters name=$NAME \
+    --parameters location=$LOCATION \
+    --parameters uniqueSuffix=$CODE \
+    --parameters adminUsername=$USERNAME \
+    --parameters adminPassword=$PASSWORD #\
+#    --parameters sourcePackageName=source.zip \
+#    --parameters databasePackageName=database.bacpac
 
 # check if the bacpac file exists in storage container
 BACPAC_EXISTS=$(az storage blob exists --container-name $STORAGE_CONTAINER \
@@ -57,33 +55,6 @@ if [[ $BACPAC_EXISTS == *"false"* ]]; then
     az storage azcopy blob upload --container $STORAGE_CONTAINER --account-name $STORAGE_ACCOUNT --source ./pkg/database.bacpac --destination database.bacpac
 
 fi
-
-# check if the bacpac file exists in storage container
-ZIP_EXISTS=$(az storage blob exists --container-name $STORAGE_CONTAINER \
-                --name database.bacpac \
-                --account-name $STORAGE_ACCOUNT)
-
-if [[ $ZIP_EXISTS == *"false"* ]]; then                
-
-    # zip the source code
-    zip -r ./pkg/source.zip ./src -x "./src/bin/*" "./src/packages/*"
-
-    # Copy the source code to the storage account
-    az storage azcopy blob upload --container $STORAGE_CONTAINER --account-name $STORAGE_ACCOUNT --source ./pkg/source.zip --destination source.zip
-
-fi
-# provision infrastructure
-az deployment sub create \
-    --name $NAME \
-    --location $LOCATION \
-    --template-file ./iac/main.bicep \
-    --parameters name=$NAME \
-    --parameters location=$LOCATION \
-    --parameters uniqueSuffix=$CODE \
-    --parameters adminUsername=$USERNAME \
-    --parameters adminPassword=$PASSWORD \
-    --parameters sourcePackageName=source.zip #\
-#    --parameters databasePackageName=database.bacpac
 
 # import the bacpac file
 az sql db import --name "db-${NAME}-${CODE}" \
