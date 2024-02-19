@@ -139,7 +139,7 @@ jobs:
           chmod +x sqlcmd
 
           # Check if the database contains any tables
-          QUERY_RESULT=$(./sqlcmd -S tcp:$SERVER_NAME.database.windows.net,1433 -d $DATABASE_NAME -U ${{ secrets.AZURE_USERNAME }} -P ${{ secrets.AZURE_PASSWORD }} -N -l 30 -Q "SELECT COUNT(*) FROM sys.tables")
+          QUERY_RESULT=$(./sqlcmd -S tcp:$SERVER_NAME.database.windows.net,1433 -d $DATABASE_NAME -U ${{ secrets.AZURE_USERNAME }} -P ${{ secrets.AZURE_PASSWORD }} -C -l 30 -Q "SELECT COUNT(*) FROM sys.tables")
 
           # Return boolean output
           echo "::set-output name=empty::$(if [[ $QUERY_RESULT == *"0"* ]]; then echo "true"; else echo "false"; fi)"
