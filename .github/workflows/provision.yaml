@@ -85,7 +85,6 @@ jobs:
               # Copy the bacpac file to the storage account
               az storage azcopy blob upload --container $STORAGE_CONTAINER \
                               --account-name $STORAGE_ACCOUNT \
-                              --resource-group $RESOURCE_GROUP \
                               --source ./pkg/database.bacpac \
                               --destination database.bacpac
             fi
