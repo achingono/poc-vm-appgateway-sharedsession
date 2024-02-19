@@ -70,11 +70,11 @@ $document.Save($targetConfig);
     "-source=iisApp=$siteCodeFolder,includeAcls=false,enable32BitAppOnWin64=false,managedPipelineMode=Integrated,managedRuntimeVersion=v4.0" `
     "-dest=package=$sitePackageFolder\source.zip" `
     "-declareParamFile=$siteCodeFolder\parameters.xml" `
-    '-skip=objectName=filePath,absolutePath=".*\\web.config.bak$"' `
-    '-skip=objectName=filePath,absolutePath=".*\\web.release.config$"' `
-    '-skip=objectName=filePath,absolutePath=".*\\nuget.config$"' `
-    '-skip=objectName=filePath,absolutePath=".*\\packages.config$"' `
-    '-skip=objectName=filePath,absolutePath=".*\\parameters.xml$"';
+    '-skip=objectName=filePath,absolutePath=.*\\web.config.bak$' `
+    '-skip=objectName=filePath,absolutePath=.*\\web.release.config$' `
+    '-skip=objectName=filePath,absolutePath=.*\\nuget.config$' `
+    '-skip=objectName=filePath,absolutePath=.*\\packages.config$' `
+    '-skip=objectName=filePath,absolutePath=.*\\parameters.xml$';
 
 # if backup file exists, restore the original config from backup
 if (Test-Path "$targetConfig.bak") {
