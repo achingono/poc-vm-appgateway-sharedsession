@@ -131,7 +131,7 @@ jobs:
 
   deploy:
     needs: [environment, upload, parametize]
-    name: Provision Infrastructure
+    name: Deploy Code
     runs-on: ubuntu-latest
     environment: 
       name: ${{ needs.environment.outputs.name }}
@@ -143,19 +143,6 @@ jobs:
       - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - name: Get Parameters
-        uses: azure/CLI@v1
-        with:
-          inlineScript: |
-            # Get Azure Sql Connection String
-            az deployment group create --name ${{ matrix.instance }} --resource-group $RESOURCE_GROUP \
-                    --template-file ./deploy.json --parameters ./deploy.parameters.json
-
-        env:
-            RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
-            STORAGE_ACCOUNT: $(echo "stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}" | tr -d -c 'a-z0-9')
-            STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}    
-
       - name: Deploy
         uses: azure/CLI@v1
         with:

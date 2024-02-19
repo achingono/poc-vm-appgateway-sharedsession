@@ -4,7 +4,7 @@ $sitePackageFolder = "$((Get-Item $siteCodeFolder).Parent.FullName)\pkg";
 $nugetPath = "$((Get-Item $siteCodeFolder).Parent.FullName)\.nuget";
 $sourceNugetExe = "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe";
 $targetNugetExe = "$nugetPath\nuget.exe";
-$nugetPackagesPath = "$sitePackageFolder\nuget";
+$nugetPackagesPath = "$nugetPath\packages";
 $binPath = "$siteCodeFolder\bin";
 $sourceConfig = "$siteCodeFolder\web.config";
 $transformConfig = "$siteCodeFolder\web.release.config";
@@ -21,9 +21,12 @@ if (!(Test-Path $targetNugetExe)) {
 }
 
 # install nuget packages
-& $targetNugetExe install -SolutionDirectory $siteCodeFolder -OutputDirectory $nugetPackagesPath;
+& $targetNugetExe install "$siteCodeFolder\packages.config" -OutputDirectory $nugetPackagesPath;
 
 # copy binaries to bin folder
+if (!(Test-Path $binPath)) {
+    mkdir -Path $binPath;
+}
 Get-ChildItem -Path $nugetPackagesPath -Recurse | Where-Object { $_.FullName -match "\\lib\\net4.*\\.*\.dll" } | ForEach-Object {
     Copy-Item -Path $_.FullName -Destination $binPath;
 }
