@@ -41,17 +41,6 @@ jobs:
         with: 
           inlineScript: ./package.ps1
           azPSVersion: "latest"          
-
-  upload:
-    needs: [environment, package]
-    name: Release
-    runs-on: ubuntu-latest
-    environment: 
-      name: ${{ needs.environment.outputs.name }}
-    outputs:
-      PACKAGE_NAME: ${{ steps.upload.outputs.PACKAGE_NAME }}
-    steps:
-      - uses: actions/checkout@v2
       - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
