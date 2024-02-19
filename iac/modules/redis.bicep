@@ -29,12 +29,12 @@ resource redis 'Microsoft.Cache/redis@2020-12-01' = {
 }
 
 resource endpoint 'Microsoft.Network/privateEndpoints@2022-11-01' = {
-  name: 'pe-redis-${name}'
+  name: 'pe-${redis.name}'
   location: location
   properties: {
     privateLinkServiceConnections: [
       {
-        name: 'pe-redis-${redis}'
+        name: 'pe-${redis.name}'
         properties: {
           privateLinkServiceId: redis.id
           groupIds: [
@@ -83,7 +83,7 @@ resource record 'Microsoft.Network/privateDnsZones/A@2018-09-01' = {
 }
 
 resource firewallRule 'Microsoft.Cache/redis/firewallRules@2020-12-01' = {
-  name: replace('rule-redis-${name}', '-', '')
+  name: replace('rule-${redis.name}', '-', '')
   parent: redis
   properties: {
     startIP: '10.0.3.0'
