@@ -74,7 +74,7 @@ jobs:
             set -eu
 
             # remove invalid characters from storage account
-            STORAGE_ACCOUNT=$(echo $STORAGE_CONTAINER | tr -d -c 'a-z0-9')
+            STORAGE_ACCOUNT=$(echo $STORAGE_ACCOUNT | tr -d -c 'a-z0-9')
 
             # check if the bacpac file exists in storage container
             BLOB_EXISTS=$(az storage blob exists --container-name $STORAGE_CONTAINER \
@@ -145,7 +145,7 @@ jobs:
             set -eu
 
             # remove invalid characters from storage account
-            STORAGE_ACCOUNT=$(echo $STORAGE_CONTAINER | tr -d -c 'a-z0-9')
+            STORAGE_ACCOUNT=$(echo $STORAGE_ACCOUNT | tr -d -c 'a-z0-9')
 
             # Allow Azure services to access the sql server
             az sql server firewall-rule create --name AllowAllWindowsAzureIps \
