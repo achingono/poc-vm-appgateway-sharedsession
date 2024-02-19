@@ -126,7 +126,7 @@ jobs:
             RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
 
   deploy:
-    needs: [environment, upload, parametize]
+    needs: [environment, package, parametize]
     name: Deploy Code
     runs-on: ubuntu-latest
     environment: 
