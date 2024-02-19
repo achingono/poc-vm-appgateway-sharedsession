@@ -142,7 +142,7 @@ jobs:
           QUERY_RESULT=$(./sqlcmd -S tcp:$SERVER_NAME.database.windows.net,1433 -d $DATABASE_NAME -U ${{ secrets.AZURE_USERNAME }} -P ${{ secrets.AZURE_PASSWORD }} -C -l 30 -Q "SELECT COUNT(*) FROM sys.tables")
 
           # Return boolean output
-          echo "::set-output name=empty::$(if [[ $QUERY_RESULT == *"0"* ]]; then echo "true"; else echo "false"; fi)"
+          echo "::set-output name=empty::$(if [[ $QUERY_RESULT =~ [^\d]0[^\d] ]]; then echo "true"; else echo "false"; fi)"
 
         env:
           SERVER_NAME: sql-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
