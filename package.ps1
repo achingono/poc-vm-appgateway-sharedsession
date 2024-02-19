@@ -68,7 +68,7 @@ $document.Save($targetConfig);
 # https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/dd569019(v=ws.10)
 $arguments = @(
     "-verb:sync",
-    "-source:iisApp=`"$siteCodeFolder`",includeAcls=false,enable32BitAppOnWin64=false,managedPipelineMode=Integrated,managedRuntimeVersion=`'v4.0`'",
+    "-source:iisApp=`"$siteCodeFolder`",includeAcls=false,enable32BitAppOnWin64=false,managedPipelineMode=Integrated,managedRuntimeVersion=`"v4.0`"",
     "-dest:package=`"$sitePackageFolder\source.zip`"",
     "-declareParamFile=`"$siteCodeFolder\parameters.xml`"",
     "-skip:objectName=filePath,absolutePath=`".*\\web.config.bak$`"",
