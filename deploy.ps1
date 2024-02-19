@@ -31,7 +31,6 @@ mkdir $downloadPath -ErrorAction SilentlyContinue;
 Invoke-WebRequest -Uri $packageUri -OutFile $packagePath; 
 
 # Generate the parameters XML file from the hashtable
-$parametersXml = $parameters.GetEnumerator() | ForEach-Object { "<setParameter name=""$($_.Key)"" value=""$($_.Value)"" />" } | Out-String;
 $parametersXml = @"
 <?xml version="1.0" encoding="UTF-8"?>
 <parameters>
@@ -48,5 +47,5 @@ $parametersFile = $packageName -replace ".zip", ".xml";
 $parametersXml | Out-File -FilePath "$downloadPath\$parametersFile";
 
 # Deploy the package to the Site
-& "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe" -verb:sync -source:package="$packagePath" `
-    -dest:iisApp=$siteName -setParamFile:"$downloadPath\$parametersFile" -verbose -debug;
+& "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe" '-verb=sync' '-source=package=$packagePath' `
+    "-dest=iisApp=$siteName" "-setParamFile=$downloadPath\$parametersFile" '-verbose' '-debug';
