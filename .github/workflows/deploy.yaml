@@ -57,6 +57,9 @@ jobs:
         uses: azure/CLI@v1
         with:
           inlineScript: |
+            # remove invalid characters from storage account
+            STORAGE_ACCOUNT=$(echo $STORAGE_ACCOUNT | tr -d -c 'a-z0-9')
+            
             # Generate the package name
             PACKAGE_NAME=source-${{ github.run_number }}.zip
 
@@ -70,7 +73,7 @@ jobs:
 
         env:
           RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
-          STORAGE_ACCOUNT: $(echo "stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}" | tr -d -c 'a-z0-9')
+          STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
           STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
 
   parametize:
@@ -148,6 +151,9 @@ jobs:
         uses: azure/CLI@v1
         with:
           inlineScript: |
+            # remove invalid characters from storage account
+            STORAGE_ACCOUNT=$(echo $STORAGE_ACCOUNT | tr -d -c 'a-z0-9')
+
             # Run command on the virtual machine
             az vm run-command invoke --command-id RunPowerShellScript \
                     --name $VIRUTAL_MACHINE --resource-group $RESOURCE_GROUP \
@@ -159,7 +165,7 @@ jobs:
             RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
             SITE_NAME: ${{ matrix.instance }}-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
             PACKAGE_NAME: ${{ needs.upload.outputs.PACKAGE_NAME }}
-            STORAGE_ACCOUNT: $(echo "stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}" | tr -d -c 'a-z0-9')
+            STORAGE_ACCOUNT: stg${{ vars.AZURE_NAME }}${{ vars.AZURE_SUFFIX }}
             STORAGE_CONTAINER: ${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}   
             SQL_CONNECTION_STRING: ${{ needs.parametize.outputs.SQL_CONNECTION_STRING }} 
             REDIS_HOSTNAME: ${{ needs.parametize.outputs.REDIS_HOSTNAME }}
