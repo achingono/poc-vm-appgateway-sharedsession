@@ -41,6 +41,24 @@ jobs:
         with: 
           inlineScript: ./package.ps1
           azPSVersion: "latest"          
+      - uses: actions/upload-artifact@master
+        with:
+          name: package
+          path: ./pkg/source.zip
+
+  upload:
+    needs: [environment, package]
+    name: Release
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ needs.environment.outputs.name }}
+    outputs:
+      PACKAGE_NAME: ${{ steps.upload.outputs.PACKAGE_NAME }}
+    steps:
+      - uses: actions/download-artifact@master
+        with:
+          name: package
+          path: ./pkg/source.zip
       - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
@@ -126,7 +144,7 @@ jobs:
             RESOURCE_GROUP: rg-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}-${{ vars.AZURE_LOCATION }}
 
   deploy:
-    needs: [environment, package, parametize]
+    needs: [environment, upload, parametize]
     name: Deploy Code
     runs-on: ubuntu-latest
     environment: 
