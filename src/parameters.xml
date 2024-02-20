@@ -1,59 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <parameters>
-    <parameter name="SQL Connection String"
-            description="The connection string used to connect to the SQL Server"
-            defaultValue="Server=tcp:${SQL_HOST}.database.windows.net,1433;Initial Catalog=${SQL_DATABASE};Persist Security Info=False;User ID=${SQL_USER};Password=${SQL_PASSWORD};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;">
-            <parameterEntry kind="XMLFile"
-                            scope="\\web.config$"
-                            match="/configuration/connectionStrings/add[@name='AzureSql']/@connectionString"
-                            />
-    </parameter>
-    <parameter name="Redis Host"
-            description="The Redis cache endpoint"
-            defaultValue="localhost">
-            <parameterEntry kind="XMLFile"
-                            scope="\\web.config$"
-                            match="/configuration/system.web/sessionState/providers/add[@name='RedisSessionStateStore']/@host"
-                            />
-    </parameter>
-    <parameter name="Redis Port"
-            description="The Redis Port. Use either your non-TLS/SSL port or your TLS/SSL port, depending on the TLS settings."
-            defaultValue="6380">
-            <parameterEntry kind="XMLFile"
-                            scope="\\web.config$"
-                            match="/configuration/system.web/sessionState/providers/add[@name='RedisSessionStateStore']/@port"
-                            />
-    </parameter>
-    <parameter name="Redis Key"
-            description="The Redis access key. Use either the primary or secondary key for your cache."
-            defaultValue="">
-            <parameterEntry kind="XMLFile"
-                            scope="\\web.config$"
-                            match="/configuration/system.web/sessionState/providers/add[@name='RedisSessionStateStore']/@accessKey"
-                            />
-    </parameter>
-    <parameter name="Redis SSL"
-            description="'true' if you want to secure cache/client communications with TLS; otherwise false. Be sure to specify the correct port. Otherwise, specify 'false' and use the non-TLS/SSL port."
-            defaultValue="true">
-            <parameterEntry kind="XMLFile"
-                            scope="\\web.config$"
-                            match="/configuration/system.web/sessionState/providers/add[@name='RedisSessionStateStore']/@ssl"
-                            />
-    </parameter>
-    <parameter name="Redis Database"
-            description="The Redis Database to use for cache output data. If not specified, the default value of 0 is used."
-            defaultValue="0">
-            <parameterEntry kind="XMLFile"
-                            scope="\\web.config$"
-                            match="/configuration/system.web/sessionState/providers/add[@name='RedisSessionStateStore']/@databaseId"
-                            />
-    </parameter>
-    <parameter name="Redis Application"
-            description="The Redis application name enables multiple applications to share the same Redis instance. This parameter is optional and if you don't provide it a default value is used."
-            defaultValue="poc">
-            <parameterEntry kind="XMLFile"
-                            scope="\\web.config$"
-                            match="/configuration/system.web/sessionState/providers/add[@name='RedisSessionStateStore']/@applicationName"
-                            />
-    </parameter>
+        <parameter name="SQL Connection String"
+                description="The connection string used to connect to the SQL Server"
+                defaultValue="Server=tcp:${SQL_HOST}.database.windows.net,1433;Initial Catalog=${SQL_DATABASE};Persist Security Info=False;User ID=${SQL_USER};Password=${SQL_PASSWORD};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;">
+                <parameterEntry kind="XMLFile"
+                        scope="\\web.config$"
+                        match="/configuration/connectionStrings/add[@name='AzureSql']/@connectionString"
+                />
+        </parameter>
+        <parameter name="Redis Host"
+                description="The Redis cache endpoint"
+                defaultValue="localhost">
+                <parameterEntry kind="XMLFile"
+                        scope="\\web.config$"
+                        match="/configuration/system.web/sessionState/providers/add[@name='RedisSessionStateStore']/@host"
+                />
+        </parameter>
+        <parameter name="Redis Port"
+                description="The Redis Port. Use either your non-TLS/SSL port or your TLS/SSL port, depending on the TLS settings."
+                defaultValue="6380">
+                <parameterEntry kind="XMLFile"
+                        scope="\\web.config$"
+                        match="/configuration/system.web/sessionState/providers/add[@name='RedisSessionStateStore']/@port"
+                />
+        </parameter>
+        <parameter name="Redis Key"
+                description="The Redis access key. Use either the primary or secondary key for your cache."
+                defaultValue="">
+                <parameterEntry kind="XMLFile"
+                        scope="\\web.config$"
+                        match="/configuration/system.web/sessionState/providers/add[@name='RedisSessionStateStore']/@accessKey"
+                />
+        </parameter>
+        <parameter name="Redis SSL"
+                description="'true' if you want to secure cache/client communications with TLS; otherwise false. Be sure to specify the correct port. Otherwise, specify 'false' and use the non-TLS/SSL port."
+                defaultValue="true">
+                <parameterEntry kind="XMLFile"
+                        scope="\\web.config$"
+                        match="/configuration/system.web/sessionState/providers/add[@name='RedisSessionStateStore']/@ssl"
+                />
+        </parameter>
+        <parameter name="Redis Database"
+                description="The Redis Database to use for cache output data. If not specified, the default value of 0 is used."
+                defaultValue="0">
+                <parameterEntry kind="XMLFile"
+                        scope="\\web.config$"
+                        match="/configuration/system.web/sessionState/providers/add[@name='RedisSessionStateStore']/@databaseId"
+                />
+        </parameter>
+        <parameter name="Redis Application"
+                description="The Redis application name enables multiple applications to share the same Redis instance. This parameter is optional and if you don't provide it a default value is used."
+                defaultValue="poc">
+                <parameterEntry kind="XMLFile"
+                        scope="\\web.config$"
+                        match="/configuration/system.web/sessionState/providers/add[@name='RedisSessionStateStore']/@applicationName"
+                />
+        </parameter>
+        <parameter name="Decryption Key"
+                description="The key used to decrypt the session data"
+                defaultValue="12345678901234567890123456789012">
+                <parameterEntry kind="XMLFile"
+                        scope="\\web.config$"
+                        match="/configuration/system.web/machineKey/@decryptionKey"
+                />
+        </parameter>
+        <parameter name="Validation Key"
+                description="The key used to validate the session data"
+                defaultValue="12345678901234567890123456789012">
+                <parameterEntry kind="XMLFile"
+                        scope="\\web.config$"
+                        match="/configuration/system.web/machineKey/@validationKey"
+                />
+        </parameter>
 </parameters>

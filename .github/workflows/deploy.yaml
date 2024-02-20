@@ -168,7 +168,11 @@ jobs:
             az vm run-command invoke --command-id RunPowerShellScript \
                     --name $VIRUTAL_MACHINE --resource-group $RESOURCE_GROUP \
                     --scripts @./deploy.ps1 \
-                    --parameters "siteName=$SITE_NAME" "packageName=$PACKAGE_NAME" "storageAccount=$STORAGE_ACCOUNT" "storageContainer=$STORAGE_CONTAINER" "sqlConnectionString=$SQL_CONNECTION_STRING" "redisHost=$REDIS_HOSTNAME" "redisKey=$REDIS_ACCESS_KEY" "redisPort=$REDIS_PORT
+                    --parameters "siteName=$SITE_NAME" "packageName=$PACKAGE_NAME" \
+                                "storageAccount=$STORAGE_ACCOUNT" "storageContainer=$STORAGE_CONTAINER" \
+                                "sqlConnectionString=$SQL_CONNECTION_STRING" "redisHost=$REDIS_HOSTNAME" \
+                                "redisKey=$REDIS_ACCESS_KEY" "redisPort=$REDIS_PORT" \
+                                "decryptionKey=${{ secrets.DECRYPTION_KEY }}" "validationKey=${{ secrets.VALIDATION_KEY }}"
         
         env:
             VIRUTAL_MACHINE: vm-${{ matrix.instance }}-${{ vars.AZURE_NAME }}-${{ vars.AZURE_SUFFIX }}
