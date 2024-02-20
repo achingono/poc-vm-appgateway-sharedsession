@@ -14,7 +14,7 @@ if ($null -eq $applicationPool -or "" -eq $applicationPool) {
 }
 $siteFolder = "C:\inetpub\$siteName";
 $sitePath = "IIS:\Sites\$siteName";
-$applicationPoolPath = "IIS:\\AppPools\\$applicationPool";
+$applicationPoolPath = "IIS:\AppPools\$applicationPool";
 
 mkdir $siteFolder
 mkdir $downloadPath;
@@ -99,8 +99,7 @@ mkdir C:\inetpub\logs -Force;
 
 # Configure IIS Application Pool
 Import-Module WebAdministration;
-$poolExists = Get-WebAppPoolState -Name $applicationPool -ErrorAction SilentlyContinue;
-if ($null -eq $poolExists) {
+if (-not (Test-Path $applicationPoolPath)) {
     # Create  Application Pool
     New-WebAppPool -Name $applicationPool;
     Set-ItemProperty $applicationPoolPath -Name managedPipelineMode -Value Integrated;
@@ -118,8 +117,7 @@ else {
     $pool | Set-Item;
 }
 
-$siteExists = Get-Website -Name $siteName -ErrorAction SilentlyContinue;
-if ($null -eq $siteExists) {
+if (-not (Test-Path $sitePath)) {
     # Change the port for the default web site
     if ($siteName -ne 'Default Web Site') {
         Set-ItemProperty "IIS:\Sites\Default Web Site" -Name bindings -Value @{protocol = "http"; bindingInformation = "*:88:" };
@@ -144,7 +142,7 @@ $xmlContent = @"
         <add key="SQLConnectionStringName" value="AzureSql" />
     </appSettings>
     <connectionStrings>
-        <add name="AzureSql" connectionString="Server=localhost,1433;Initial Catalog=Poc;Integrated Security=true;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" providerName="System.Data.SqlClient" />
+        <add name="AzureSql" connectionString="Server=localhost,1433;Initial Catalog=$siteName;Integrated Security=true;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" providerName="System.Data.SqlClient" />
     </connectionStrings>
     <system.web>
         <compilation debug="true" />
@@ -171,6 +169,8 @@ if (-not (Test-Path "$siteFolder\default.asp")) {
 
 # Define the HTML content as a multi-line string
 $aspContent = @"
+<% Set Shell = CreateObject("WScript.Shell")
+Set Environment = Shell.Environment( "PROCESS" ) %>
 <!doctype html>  <head> <meta charset=utf-8> <meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"name=viewport> <base 
     href=/ > <title>$siteName</title> <link href=https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css rel=stylesheet> </head> <body> <nav 
     aria-label="main navigation"class=navbar role=navigation> <div class=navbar-brand> <a href=/ class=navbar-item> <img height=28 
