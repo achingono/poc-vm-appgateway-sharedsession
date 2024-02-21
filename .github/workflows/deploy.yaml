@@ -110,7 +110,7 @@ jobs:
         with:
           inlineScript: |
             # Get Azure Sql Connection String
-            SQL_CONNECTION_STRING=$(az sql db show-connection-string --client ado.net --name $DATABASE_NAME --server $SERVER_NAME --auth-type SqlPassword)
+            CONNECTION_STRING=$(az sql db show-connection-string --client ado.net --name $DATABASE_NAME --server $SERVER_NAME --auth-type SqlPassword)
 
             # Replace username and password in the connection string
             CONNECTION_STRING=$(echo $CONNECTION_STRING | sed -e "s/<username>/${{ secrets.AZURE_USERNAME }}/g" -e "s/<password>/${{ secrets.AZURE_PASSWORD }}/g")

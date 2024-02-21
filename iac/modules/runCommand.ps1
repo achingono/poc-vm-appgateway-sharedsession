@@ -14,7 +14,7 @@ if ($null -eq $applicationPool -or "" -eq $applicationPool) {
 }
 $siteFolder = "C:\inetpub\$siteName";
 $sitePath = "IIS:\Sites\$siteName";
-$applicationPoolPath = "IIS:\\AppPools\\$applicationPool";
+$applicationPoolPath = "IIS:\AppPools\$applicationPool";
 
 mkdir $siteFolder
 mkdir $downloadPath;
@@ -99,8 +99,7 @@ mkdir C:\inetpub\logs -Force;
 
 # Configure IIS Application Pool
 Import-Module WebAdministration;
-$poolExists = Get-WebAppPoolState -Name $applicationPool -ErrorAction SilentlyContinue;
-if ($null -eq $poolExists) {
+if (-not (Test-Path $applicationPoolPath)) {
     # Create  Application Pool
     New-WebAppPool -Name $applicationPool;
     Set-ItemProperty $applicationPoolPath -Name managedPipelineMode -Value Integrated;
@@ -118,8 +117,7 @@ else {
     $pool | Set-Item;
 }
 
-$siteExists = Get-Website -Name $siteName -ErrorAction SilentlyContinue;
-if ($null -eq $siteExists) {
+if (-not (Test-Path $sitePath)) {
     # Change the port for the default web site
     if ($siteName -ne 'Default Web Site') {
         Set-ItemProperty "IIS:\Sites\Default Web Site" -Name bindings -Value @{protocol = "http"; bindingInformation = "*:88:" };

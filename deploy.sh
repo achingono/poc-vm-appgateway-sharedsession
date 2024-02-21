@@ -52,7 +52,8 @@ BACPAC_EXISTS=$(az storage blob exists --container-name $STORAGE_CONTAINER \
 if [[ $BACPAC_EXISTS == *"false"* ]]; then                
 
     # Copy the bacpac file to the storage account
-    az storage azcopy blob upload --container $STORAGE_CONTAINER --account-name $STORAGE_ACCOUNT --source ./pkg/database.bacpac --destination database.bacpac
+    az storage azcopy blob upload --container $STORAGE_CONTAINER --account-name $STORAGE_ACCOUNT \
+        --source ./pkg/database.bacpac --destination database.bacpac
 
 fi
 
